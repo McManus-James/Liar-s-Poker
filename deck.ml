@@ -13,7 +13,19 @@ module type Deck = struct
 
   let empty = []
 
-  let new_deck e =
+  (* helper function to instantiate a 52 card deck.
+   * [suit] is a suit, and [rank_list] is a list of
+   * all possible ranks
+   * [accum] is an accumulator holding the deck created so far
+   * function returns all the cards for a particular suit, from 2 through Ace
+   * (represented as rank 14) *)
+  let deck_helper suit rank_list accum = match rank_list with
+    | [] -> accum
+    | h::t -> (h, suit)::accum
+
+  let new_deck suit_list accum = match suit_list with
+    | [] -> accum
+    | h::t -> (deck_helper h [1; 2; 3; 4; 5; 6; 7; 8; 9; 10; 11; 12; 13; 14] accum)@accum
   (* [shuffle_deck d] takes in a Deck [d] and returns a shuffled copy of the
    * original deck *)
   val shuffle_deck: deck -> deck
