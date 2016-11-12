@@ -13,6 +13,14 @@ module type Deck = struct
 
   let empty = []
 
+  (* helper function taken from Recitation 3: Lists, and Testing with OUnit
+   * that creates an infix operator that makes a list of all integers from i through j inclusive *)
+  let (--) i j =
+    let rec from i j l =
+      if i>j then l
+      else from i (j-1) (j::l)
+      in from i j []
+
   (* helper function to instantiate a 52 card deck.
    * [suit] is a suit, and [rank_list] is a list of
    * all possible ranks
@@ -25,7 +33,7 @@ module type Deck = struct
 
   let rec new_deck suit_list accum = match suit_list with
     | [] -> accum
-    | h::t -> new_deck t ((deck_helper h [1; 2; 3; 4; 5; 6; 7; 8; 9; 10; 11; 12; 13; 14] [])@accum)
+    | h::t -> new_deck t ((deck_helper h (1--14) [])@accum)
 
   (* [shuffle_deck d] takes in a Deck [d] and returns a shuffled copy of the
    * original deck *)
