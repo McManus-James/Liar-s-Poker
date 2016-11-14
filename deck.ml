@@ -39,7 +39,8 @@ module type Deck = struct
     | h::t -> suit_helper t ((deck_helper h (1--14) [])@accum)
 
 
-  let rec new_deck = suit_helper [Hearts; Spades; Clubs; Diamonds] []
+  let rec new_deck () = ref (suit_helper [Hearts; Spades; Clubs; Diamonds] [])
+
 
   (* [shuffle_deck d] takes in a Deck [d] and returns a shuffled copy of the
    * original deck *)
