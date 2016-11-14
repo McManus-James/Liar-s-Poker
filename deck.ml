@@ -41,13 +41,32 @@ module type Deck = struct
 
   let rec new_deck () = ref (suit_helper [Hearts; Spades; Clubs; Diamonds] [])
 
+  (* Helper method for modifying the deck returns all but the first [n] elements of [lst]. If [lst] has fewer than
+   * [n] elements, return the empty list. Code taken from Recitation: Lists,
+   * and Testing with OUnit *)
+  let rec drop n h =
+    if n =0 then h else match h with
+      | []->[]
+      | x::xs -> drop (n-1) xs
+
+  (* returns the first [n] elements of [lst]. If [lst] has fewer than [n] elements, return all of them.
+   * Code taken from Recitation: Lists, and Testing with OUnit *)
+  let rec take n l =
+    if n = 0 then [] else match l with
+      | [] -> []
+      | (x::xs) -> x :: (take (n-1) xs)
+
 
   (* [shuffle_deck d] takes in a Deck [d] and returns a shuffled copy of the
    * original deck *)
   val shuffle_deck: deck -> deck
 
   (* [deal n d] creates a hand of the first [n] cards off of the top of deck d,
-   * returning a hand with [n] cards *)
-  val deal: int -> deck -> hand
+   * returning a hand with [n] cards. It also modifies the deck to refelct the
+   * fact that the top [n] cards are now gone from the deck *)
+  let deal n d =
+    let hand = take n !d in
+    d := drop n !d;
+    hand
 
 end
