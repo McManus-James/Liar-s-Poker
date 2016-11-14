@@ -21,6 +21,7 @@ module type Deck = struct
       else from i (j-1) (j::l)
       in from i j []
 
+
   (* helper function to instantiate a 52 card deck.
    * [suit] is a suit, and [rank_list] is a list of
    * all possible ranks
@@ -31,9 +32,14 @@ module type Deck = struct
     | [] -> accum
     | h::t -> deck_helper suit t ((h, suit)::accum)
 
-  let rec new_deck suit_list accum = match suit_list with
+  (* helper function that matches a list of suits and for each suit calls
+   * [deck_helper] to instantiate cards 1-14 for each suit *)
+  let rec suit_helper suit_list accum = match suit_list with
     | [] -> accum
-    | h::t -> new_deck t ((deck_helper h (1--14) [])@accum)
+    | h::t -> suit_helper t ((deck_helper h (1--14) [])@accum)
+
+
+  let rec new_deck = suit_helper [Hearts; Spades; Clubs; Diamonds] []
 
   (* [shuffle_deck d] takes in a Deck [d] and returns a shuffled copy of the
    * original deck *)
