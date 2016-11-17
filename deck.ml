@@ -1,3 +1,5 @@
+open Pervasives
+open List
 (* A [Deck] is an OCaml representation of a standard 52 playing card deck *)
 module type Deck = struct
 
@@ -21,6 +23,30 @@ module type Deck = struct
       else from i (j-1) (j::l)
       in from i j []
 
+
+  let string_of_rank (r:int) =
+    if r = 11 then "Jack"
+    else if r = 12 then "Queen"
+    else if r = 13 then "King"
+    else if r = 14 then "Ace"
+    else string_of_int r
+
+  let string_of_suit (s:suit) =
+    if s = Spades then "Spades"
+    else if s = Clubs then "Clubs"
+    else if s = Diamonds then "Diamonds"
+    else "Hearts"
+
+  (* print function to print cards *)
+  let string_of_card (c:card) : string =
+    string_of_rank (fst c) ^ " of " ^ string_of_suit (snd c)
+
+  (* print a hand. h is the hand to print. !!!!!!!!!!Do we want this as a visible interface in the
+   * deck sig???? *)
+  let rec print_hand h = match h with
+    | [] -> ()
+    | h::t -> Pervasives.print_endline (string_of_card h);
+              print_hand t
 
   (* helper function to instantiate a 52 card deck.
    * [suit] is a suit, and [rank_list] is a list of
