@@ -45,7 +45,7 @@ module type Deck = struct
    * deck sig???? *)
   let rec print_hand h = match h with
     | [] -> ()
-    | h::t -> Pervasives.print_endline (string_of_card h);
+    | h::t -> print_endline (string_of_card h);
               print_hand t
 
   (* helper function to instantiate a 52 card deck.

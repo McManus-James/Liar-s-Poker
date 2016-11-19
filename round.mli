@@ -3,23 +3,17 @@
  * within all the cards in play the round *)
 module type Round = sig
 
-  (* The type of an card rank *)
-  type rank
+  type rank = int
 
-  (* The type of an card suit *)
-  type suit
+  type suit = Hearts | Clubs | Diamonds | Spades
 
-  (* The type of a card *)
-  type card
+  type card = (rank * suit)
 
-  (* The type of a hand *)
-  type hand
+  type hand = card list
 
-  (* the type of a deck *)
-  type deck
+  type deck = ???
 
-  (* The type of a poker hand *)
-  type pokerhand
+  type pokerhand =
 
   (* The type of a player id*)
   type pid
