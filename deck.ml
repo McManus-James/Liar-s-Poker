@@ -11,7 +11,7 @@ module type Deck = struct
 
   type hand = card list
 
-  type deck = card list
+  type deck = card list ref
 
   let empty = []
 
@@ -85,7 +85,7 @@ module type Deck = struct
 
   (* [shuffle_deck d] takes in a Deck [d] and returns a shuffled copy of the
    * original deck *)
-  val shuffle_deck: deck -> deck
+  (* val shuffle_deck: deck -> deck *)
 
   (* [deal n d] creates a hand of the first [n] cards off of the top of deck d,
    * returning a hand with [n] cards. It also modifies the deck to refelct the

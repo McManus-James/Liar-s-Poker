@@ -10,7 +10,7 @@ module type Round = struct
 
   type hand = card list
 
-  type deck = ????
+  type deck = Deck.deck
 
   type pokerhand = | FourOfAKind of int
                    | FullHouse of int * int (* first int is rank of the three of
@@ -31,21 +31,33 @@ module type Round = struct
 
   (* [deal_hands n] returns an associative list that maps [pid]s to hands of
    * [n] cards *)
-  val deal_hands : (pid * int) list -> (pid * hand) list
+  let deal_hands players (pid * int list) =
+    failwith "Unimplemented"
+
+
+  (* Helper method for modifying the deck returns all but the first [n] elements of [lst]. If [lst] has fewer than
+   * [n] elements, return the empty list. Code taken from Recitation: Lists,
+   * and Testing with OUnit *)
+  let rec drop n h =
+    if n =0 then h else match h with
+      | []->[]
+      | x::xs -> drop (n-1) xs
 
   (* checks if one of the card ranks is in the collective cards. THIS ISN'T
    * QUITE RIGHT THOUGH BECAUSE NEED TO REMOVE THIS CARD FROM THE LIST AFTER
    * IT'S FOUND *)
-  let check_individual_card_rank rank rank_lst = match rank_lst with
+  let check_individual_card_rank (rank : rank) (rank_lst : rank list ref) : bool = match rank_lst with
     | [] -> false
-    | h::t -> if h = rank then true
+    | h::t -> if h = rank then
+                rank_lst := drop n !rank_lst;
+                true
               else check_individual_card_rank rank t
 
   (* returns true if every card rank in [called_ranks] is in [rank_lst]. Returns
    * false otherwise *)
-  let check (called_ranks: rank list) (rank_lst: rank list) = match called_ranks with
+  let check (called_ranks: rank list) (rank_lst: rank list ref) = match called_ranks with
     | [] -> true
-    | h::t -> (check_individual_card_rank h rank_lst) && check t rank_lst
+    | h::t -> fst (check_individual_card_rank h rank_lst) && check t rank_lst
 
   (* takes a pokerhand [phand] and converts it into a rank list of the ranks of the cards in the hand.
    * Does not return a card list, because the suits of the cards are not considered when checking to see if the
@@ -62,7 +74,7 @@ module type Round = struct
   (* [hand_exists hands handrank] returns true if [handrank] exists within all
    * the cards in [hands] *)
   let hand_exists (hands: hand list) (handrank: pokerhand) : bool =
-    let ranks = sort compare (fst (split hands)) in
+    let ranks = ref (sort compare (fst (split hands))) in
     let hand_rank_lst = convert_phand_to_hand handrank in
     check hand_rank_lst ranks
 
