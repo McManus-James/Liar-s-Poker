@@ -31,8 +31,11 @@ module type Round = struct
 
   (* [deal_hands n] returns an associative list that maps [pid]s to hands of
    * [n] cards *)
-  let deal_hands players (pid * int list) =
-    failwith "Unimplemented"
+  let deal_hands (players: pid * int list) (accum: pid * hand list) : pid * hand list =
+    let d =
+    match players with
+      | [] -> accum
+      | (_, n)::t -> Deck.deal
 
 
   (* Helper method for modifying the deck returns all but the first [n] elements of [lst]. If [lst] has fewer than
@@ -46,7 +49,7 @@ module type Round = struct
   (* checks if one of the card ranks is in the collective cards. THIS ISN'T
    * QUITE RIGHT THOUGH BECAUSE NEED TO REMOVE THIS CARD FROM THE LIST AFTER
    * IT'S FOUND *)
-  let check_individual_card_rank (rank : rank) (rank_lst : rank list ref) : bool = match rank_lst with
+  let rec check_individual_card_rank (rank : rank) (rank_lst : rank list ref) : bool = match rank_lst with
     | [] -> false
     | h::t -> if h = rank then
                 rank_lst := drop n !rank_lst;
@@ -55,7 +58,7 @@ module type Round = struct
 
   (* returns true if every card rank in [called_ranks] is in [rank_lst]. Returns
    * false otherwise *)
-  let check (called_ranks: rank list) (rank_lst: rank list ref) = match called_ranks with
+  let rec check (called_ranks: rank list) (rank_lst: rank list ref) = match called_ranks with
     | [] -> true
     | h::t -> fst (check_individual_card_rank h rank_lst) && check t rank_lst
 

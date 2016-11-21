@@ -1,5 +1,6 @@
 open Pervasives
 open List
+open Random
 (* A [Deck] is an OCaml representation of a standard 52 playing card deck *)
 module type Deck = struct
 
@@ -28,7 +29,7 @@ module type Deck = struct
     if r = 11 then "Jack"
     else if r = 12 then "Queen"
     else if r = 13 then "King"
-    else if r = 14 then "Ace"
+    else if r = 1 then "Ace"
     else string_of_int r
 
   let string_of_suit (s:suit) =
@@ -62,7 +63,7 @@ module type Deck = struct
    * [deck_helper] to instantiate cards 1-14 for each suit *)
   let rec suit_helper suit_list accum = match suit_list with
     | [] -> accum
-    | h::t -> suit_helper t ((deck_helper h (1--14) [])@accum)
+    | h::t -> suit_helper t ((deck_helper h (1--13) [])@accum)
 
 
   let rec new_deck () = ref (suit_helper [Hearts; Spades; Clubs; Diamonds] [])
@@ -84,8 +85,19 @@ module type Deck = struct
 
 
   (* [shuffle_deck d] takes in a Deck [d] and returns a shuffled copy of the
-   * original deck *)
-  (* val shuffle_deck: deck -> deck *)
+   * original deck. *)
+  let shuffle_deck d =
+    let deck = !d in
+    let array_deck = Array.of_list deck in
+    for i=0 to 10000 do
+      let first = Random.int 52 in
+      let second = Random.int 52 in
+      let old_card_one = array_deck.(first) in
+      let old_card_two = array_deck.(second) in
+      array_deck.(second) <- old_card_one;
+      array_deck.(first) <- old_card_two;
+      d := (Array.to_list array_deck);
+    done
 
   (* [deal n d] creates a hand of the first [n] cards off of the top of deck d,
    * returning a hand with [n] cards. It also modifies the deck to refelct the
