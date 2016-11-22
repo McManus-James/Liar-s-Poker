@@ -1,6 +1,7 @@
 open List
+open Deck
 
-module type Round = struct
+module type Round (D: Deck.Deck) = struct
 
   type rank = int
 
@@ -10,7 +11,7 @@ module type Round = struct
 
   type hand = card list
 
-  type deck = Deck.deck
+  type deck = D.deck
 
   type pokerhand = | FourOfAKind of int
                    | FullHouse of int * int (* first int is rank of the three of
@@ -31,11 +32,11 @@ module type Round = struct
 
   (* [deal_hands n] returns an associative list that maps [pid]s to hands of
    * [n] cards *)
-  let deal_hands (players: pid * int list) (accum: pid * hand list) : pid * hand list =
-    let d =
+  let rec deal_hands (players: pid * int list) (accum: pid * hand list) : pid * hand list =
+    let d = D.shuffle_deck (D.new_deck ()) in
     match players with
       | [] -> accum
-      | (_, n)::t -> Deck.deal
+      | (p, n)::t -> deal_hands t ((p, (D.deal n d))::accum)
 
 
   (* Helper method for modifying the deck returns all but the first [n] elements of [lst]. If [lst] has fewer than
@@ -49,12 +50,12 @@ module type Round = struct
   (* checks if one of the card ranks is in the collective cards. THIS ISN'T
    * QUITE RIGHT THOUGH BECAUSE NEED TO REMOVE THIS CARD FROM THE LIST AFTER
    * IT'S FOUND *)
-  let rec check_individual_card_rank (rank : rank) (rank_lst : rank list ref) : bool = match rank_lst with
+  let rec check_individual_card_rank (rank : rank) (rank_lst : rank list ref) (counter : int) : bool = match rank_lst with
     | [] -> false
     | h::t -> if h = rank then
-                rank_lst := drop n !rank_lst;
+                rank_lst := drop counter !rank_lst;
                 true
-              else check_individual_card_rank rank t
+              else check_individual_card_rank rank t (counter + 1)
 
   (* returns true if every card rank in [called_ranks] is in [rank_lst]. Returns
    * false otherwise *)

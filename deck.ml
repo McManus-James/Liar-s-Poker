@@ -1,8 +1,22 @@
 open Pervasives
 open List
 open Random
+open Array
 (* A [Deck] is an OCaml representation of a standard 52 playing card deck *)
-module type Deck = struct
+
+module type Deck = sig
+  type rank
+  type suit
+  type card
+  type hand
+  type deck
+  val empty : deck
+  val new_deck : deck -> deck
+  val shuffle_deck: deck -> deck
+  val deal: int -> deck -> hand
+end
+
+module Deck:Deck = struct
 
   type rank = int
 
@@ -14,31 +28,34 @@ module type Deck = struct
 
   type deck = card list ref
 
-  let empty = []
+  let empty = ref []
 
   (* helper function taken from Recitation 3: Lists, and Testing with OUnit
-   * that creates an infix operator that makes a list of all integers from i through j inclusive *)
+   * that creates an infix operator that makes a list of all integers from i
+   * through j inclusive *)
   let (--) i j =
     let rec from i j l =
       if i>j then l
       else from i (j-1) (j::l)
       in from i j []
 
-
-  let string_of_rank (r:int) =
+  (* [string_of_rank r] returns the name of the card for face cards, or the
+   * string of the number if the card is not a face card *)
+  let string_of_rank r =
     if r = 11 then "Jack"
     else if r = 12 then "Queen"
     else if r = 13 then "King"
     else if r = 1 then "Ace"
     else string_of_int r
 
+  (* [string_of_suit s] returns the string representation of suit [s] *)
   let string_of_suit (s:suit) =
     if s = Spades then "Spades"
     else if s = Clubs then "Clubs"
     else if s = Diamonds then "Diamonds"
     else "Hearts"
 
-  (* print function to print cards *)
+  (* [string_of_card c] formats a  *)
   let string_of_card (c:card) : string =
     string_of_rank (fst c) ^ " of " ^ string_of_suit (snd c)
 
@@ -66,7 +83,7 @@ module type Deck = struct
     | h::t -> suit_helper t ((deck_helper h (1--13) [])@accum)
 
 
-  let rec new_deck () = ref (suit_helper [Hearts; Spades; Clubs; Diamonds] [])
+  let rec new_deck (e : deck) : deck = ref (suit_helper [Hearts; Spades; Clubs; Diamonds] (!e))
 
   (* Helper method for modifying the deck returns all but the first [n] elements of [lst]. If [lst] has fewer than
    * [n] elements, return the empty list. Code taken from Recitation: Lists,
@@ -83,10 +100,7 @@ module type Deck = struct
       | [] -> []
       | (x::xs) -> x :: (take (n-1) xs)
 
-
-  (* [shuffle_deck d] takes in a Deck [d] and returns a shuffled copy of the
-   * original deck. *)
-  let shuffle_deck d =
+  let shuffle_deck (d : deck) : deck =
     let deck = !d in
     let array_deck = Array.of_list deck in
     for i=0 to 10000 do
@@ -97,12 +111,10 @@ module type Deck = struct
       array_deck.(second) <- old_card_one;
       array_deck.(first) <- old_card_two;
       d := (Array.to_list array_deck);
-    done
+    done;
+    d
 
-  (* [deal n d] creates a hand of the first [n] cards off of the top of deck d,
-   * returning a hand with [n] cards. It also modifies the deck to refelct the
-   * fact that the top [n] cards are now gone from the deck *)
-  let deal n d =
+  let deal (n : int) (d : deck) : hand =
     let hand = take n !d in
     d := drop n !d;
     hand
