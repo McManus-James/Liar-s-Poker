@@ -1,7 +1,9 @@
 open List
 open Deck
 open Pervasives
+open String
 
+exception InvalidRank
 module Round (D: Deck) = struct
 
   type rank = int
@@ -29,8 +31,8 @@ module Round (D: Deck) = struct
   type pid = int
 
   (* The type of a move*)
-  type move = | BS of hand (* BS carries the last hand called from the previous round that needs to be checked *)
-              | Raise of hand (* Hand that the player is calling that is higher
+  type move = | BS of pokerhand (* BS carries the last hand called from the previous round that needs to be checked *)
+              | Raise of pokerhand (* Hand that the player is calling that is higher
                                than the previous hand *)
 
   type round_info = {
@@ -43,15 +45,15 @@ module Round (D: Deck) = struct
     collective_cards : card list; (* list of all the cards in play; giant list of everyone's hands *)
   }
 
-  (* formats a pokerhand into a string for printing *)
+  (* formats a pokerhand into a string for printing. Called to format the calls of the AIs for printing *)
   let string_of_pokerhand (phand: pokerhand) : string = match phand with
     | FourOfAKind p -> "Four " ^ D.string_of_rank p ^ "s"
-    | FullHouse (p, t) -> "Three " ^ D.string_of_rank p ^ "s and two " ^ D.string_of_rank t ^ "s"
+    | FullHouse (p, t) -> "Full house with three " ^ D.string_of_rank p ^ "s and two " ^ D.string_of_rank t ^ "s"
     | Straight p -> "Straight to " ^ D.string_of_rank p
     | ThreeOfAKind p -> "Three " ^ D.string_of_rank p ^ "s"
     | TwoPair (p, t) -> "Two " ^ D.string_of_rank p ^ "s and two " ^ D.string_of_rank t ^ "s"
     | Pair p -> "Two " ^ D.string_of_rank p ^ "s"
-    | HighCard p -> "One " ^ D.string_of_rank p
+    | HighCard p -> "Highcard of " ^ D.string_of_rank p
 
   (* [deal_hands n] returns an associative list that maps [pid]s to hands of
    * [n] cards *)
@@ -94,7 +96,7 @@ module Round (D: Deck) = struct
     | [] -> true
     | h::t -> fst (check_individual_card_rank h rank_lst 1) && check t rank_lst
 
-  (* takes a pokerhand [phand] and converts it into a rank list of the ranks of the cards in the hand.
+  (* takes a pokerhand [phand] and converts it into a rank list of the ranks of the cards in the hand that's called for checking purposes.
    * Does not return a card list, because the suits of the cards are not considered when checking to see if the
    * hand is in the collective set of cards in play *)
   let convert_phand_to_hand (phand: pokerhand) : rank list = match phand with
@@ -108,17 +110,70 @@ module Round (D: Deck) = struct
 
   (* [hand_exists hands handrank] returns true if [handrank] exists within all
    * the cards in [hands] *)
-  let hand_exists (hands: card list) (handrank: pokerhand) : bool =
+  let hand_exists (hands : card list) (handrank : pokerhand) : bool =
     let ranks = ref (sort compare (fst (split hands))) in
     let hand_rank_lst = convert_phand_to_hand handrank in
     check hand_rank_lst ranks
+
+  (* takes input from the user and parses it into a pokerhand type *)
+  let parse_input (h : hand) (r : pokerhand) : move =
+    D.print_hand h;
+    print_endline ("And this is the previous hand called: " ^ string_of_pokerhand r);
+    print_endline "What is your move?";
+    print_endline ">";
+    let call = trim (lowercase_ascii (read_line ())) in
+    try (
+      let space = index call ' ' in
+      let type_of_hand = sub call 0 space in
+      match type_of_hand with
+        | "four" -> let i = sub call (space + 1) 1 in
+                    Raise (FourOfAKind (int_of_string i))
+        | "fh" -> let first_i = sub call (space + 1) 1 in
+                  let second_space = rindex call ' ' in
+                  let second_i = sub call (second_space + 1) 1 in
+                  Raise (FullHouse (int_of_string first_i) (int_of_string second_i))
+        | "straight" -> let i = sub call (space + 1) 1 in
+                        Straight (int_of_string i)
+        | "three" -> let i = sub call (space + 1) 1 in
+                    Raise (ThreeOfAKind (int_of_string i))
+        | "tp" -> let first_i = sub call (space + 1) 1 in
+                  let second_space = rindex call ' ' in
+                  let second_i = sub call (second_space + 1) 1 in
+                  Raise (TwoPair (int_of_string first_i) (int_of_string second_i))
+        | "pair" -> let i = sub call (space + 1) 1 in
+                    Raise (Pair (int_of_string i))
+        | "hc" -> let i = sub call (space + 1) 1 in
+                  Raise (HighCard (int_of_string i))
+        | "bs" -> BS (r)
+        | _ -> raise InvalidRank
+
+    )
+    with
+      | Not_found _ -> print_endline "That is not a valid hand type. Please try again.";
+                       parse_input h r
+      | Invalid_argument _ -> print_endline "That is not a valid hand. Please try again.";
+                              parse_input h r
+      | InvalidRank -> print_endline "That is not a valid hand. Please try again.";
+                       parse_input h r
+
 
   (* [human_turn h r] returns the move that the human player decides to make
    * based on his or her hand [h] and the previous hand called, [r] *)
   let human_turn (h: hand) (r : pokerhand) : move =
     print_endline ("Player 1, your turn! " ^ "Here is your hand: ");
-    D.print_hand;
-
+    let parsed_hand = parse_input h r in
+    (* D.print_hand;
+    print_endline "What is your move?";
+    print_endline ">";
+    let call = trim (lowercase_ascii (read_line ())) in
+    try (let space =
+    let type_of_hand = sub call
+    match call with
+      | ""
+    )
+    with
+      | Not_found _ -> print_endline "That is not a valid hand. Please try again.";
+                       human_turn h r *)
   (* returns true if [p] is a valid rank for a straight; ie [p] must be
    * between 6 and 10 but because a straight must have 5 cards in it so the
    * lowest possible stairght is 2, 3, 4, 5, 6 and the highest is 10, Jack,
@@ -134,7 +189,9 @@ module Round (D: Deck) = struct
     match p_hand, prev_hand with
       | FourOfAKind p, FourOfAKind t -> p > t
       | FourOfAKind _, _ -> true
-      | FullHouse (p1, p2), FullHouse (t1, t2) ->
+      | FullHouse (p1, p2), FullHouse (t1, t2) -> if p1 > t1 then true
+                                                  else if p1 = t1 then p2 > t2
+                                                  else false
       | FullHouse (_, _), FourOfAKind _ -> false
       | FullHouse (_, _), _ -> true
       | Straight p, Straight t -> p > t
@@ -146,7 +203,9 @@ module Round (D: Deck) = struct
       | ThreeOfAKind _, FullHouse (_, _) -> false
       | ThreeOfAKind _, Straight _ -> false
       | ThreeOfAKind _, _ -> true
-      | TwoPair (p1, p2), TwoPair (t1, t2) ->
+      | TwoPair (p1, p2), TwoPair (t1, t2) -> if p1 > t1 then true
+                                              else if p1 = t1 then p2 > t2
+                                              else false
       | TwoPair (_, _), Pair _ -> true
       | TwoPair (_, _), HighCard _ -> true
       | TwoPair (_, _), _ -> false
