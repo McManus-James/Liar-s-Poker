@@ -1,7 +1,8 @@
 open List
 open Deck
+open Pervasives
 
-module type Round (D: Deck.Deck) = struct
+module Round (D: Deck) = struct
 
   type rank = int
 
@@ -28,15 +29,45 @@ module type Round (D: Deck.Deck) = struct
   type pid = int
 
   (* The type of a move*)
-  type move
+  type move = | BS of hand (* BS carries the last hand called from the previous round that needs to be checked *)
+              | Raise of hand (* Hand that the player is calling that is higher
+                               than the previous hand *)
+
+  type round_info = {
+    pid_list : pid list; (* list of player ids in the order they take turns *)
+    current_player : pid; (* the pid of the player who's turn it currently is *)
+    prev_player : pid; (* the previous player who made a turn. Stored for easy access if BS is called and the hand they called is not in the collective_cards *)
+    hands_called : pokerhand list; (* list of pokerhands called so far in the round *)
+    prev_move : move; (* previous move called in round *)
+    pid_hands : pid * hand list; (* association list mapping pids to their respective hands *)
+    collective_cards : card list; (* list of all the cards in play; giant list of everyone's hands *)
+  }
+
+  (* formats a pokerhand into a string for printing *)
+  let string_of_pokerhand (phand: pokerhand) : string = match phand with
+    | FourOfAKind p -> "Four " ^ D.string_of_rank p ^ "s"
+    | FullHouse (p, t) -> "Three " ^ D.string_of_rank p ^ "s and two " ^ D.string_of_rank t ^ "s"
+    | Straight p -> "Straight to " ^ D.string_of_rank p
+    | ThreeOfAKind p -> "Three " ^ D.string_of_rank p ^ "s"
+    | TwoPair (p, t) -> "Two " ^ D.string_of_rank p ^ "s and two " ^ D.string_of_rank t ^ "s"
+    | Pair p -> "Two " ^ D.string_of_rank p ^ "s"
+    | HighCard p -> "One " ^ D.string_of_rank p
 
   (* [deal_hands n] returns an associative list that maps [pid]s to hands of
    * [n] cards *)
   let rec deal_hands (players: pid * int list) (accum: pid * hand list) : pid * hand list =
-    let d = D.shuffle_deck (D.new_deck ()) in
+    let d = D.shuffle_deck (D.new_deck D.empty) in
     match players with
       | [] -> accum
       | (p, n)::t -> deal_hands t ((p, (D.deal n d))::accum)
+
+  (* returns: pid of the losing player of the round *)
+  let rec run_turn r_info =
+    match r_info.prev_move with
+      | BS p -> if (hand_exists r_info.collective_cards p) then current_player
+                else prev_player
+    else if current_player = 1 then
+      let move = human_turn in
 
 
   (* Helper method for modifying the deck returns all but the first [n] elements of [lst]. If [lst] has fewer than
@@ -61,7 +92,7 @@ module type Round (D: Deck.Deck) = struct
    * false otherwise *)
   let rec check (called_ranks: rank list) (rank_lst: rank list ref) = match called_ranks with
     | [] -> true
-    | h::t -> fst (check_individual_card_rank h rank_lst) && check t rank_lst
+    | h::t -> fst (check_individual_card_rank h rank_lst 1) && check t rank_lst
 
   (* takes a pokerhand [phand] and converts it into a rank list of the ranks of the cards in the hand.
    * Does not return a card list, because the suits of the cards are not considered when checking to see if the
@@ -77,14 +108,16 @@ module type Round (D: Deck.Deck) = struct
 
   (* [hand_exists hands handrank] returns true if [handrank] exists within all
    * the cards in [hands] *)
-  let hand_exists (hands: hand list) (handrank: pokerhand) : bool =
+  let hand_exists (hands: card list) (handrank: pokerhand) : bool =
     let ranks = ref (sort compare (fst (split hands))) in
     let hand_rank_lst = convert_phand_to_hand handrank in
     check hand_rank_lst ranks
 
   (* [human_turn h r] returns the move that the human player decides to make
    * based on his or her hand [h] and the previous hand called, [r] *)
-  val human_turn  : hand -> pokerhand -> move
+  let human_turn (h: hand) (r : pokerhand) : move =
+    print_endline ("Player 1, your turn! " ^ "Here is your hand: ");
+    D.print_hand;
 
   (* returns true if [p] is a valid rank for a straight; ie [p] must be
    * between 6 and 10 but because a straight must have 5 cards in it so the

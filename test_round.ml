@@ -1,10 +1,11 @@
 open OUnit2
 open Deck
+open Round
 
-let deck_tests = [
+let round_tests = [
   "empty_deck" >:: (fun _ -> assert_equal [] ([]));
 ]
 
 
 
-let tests = deck_tests
+let tests = round_tests

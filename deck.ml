@@ -39,8 +39,6 @@ module Deck:Deck = struct
       else from i (j-1) (j::l)
       in from i j []
 
-  (* [string_of_rank r] returns the name of the card for face cards, or the
-   * string of the number if the card is not a face card *)
   let string_of_rank r =
     if r = 11 then "Jack"
     else if r = 12 then "Queen"

@@ -1,5 +1,5 @@
 test:
-	ocamlbuild -pkgs oUnit,str,unix test_deck.byte && ./test_deck.byte
+	ocamlbuild -pkgs oUnit,str,unix test_main.byte && ./test_main.byte
 
 clean:
 	ocamlbuild -clean
