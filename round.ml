@@ -1,5 +1,7 @@
 open Deck
-(* open String *)
+open String
+open Pervasives
+open List
 
 exception InvalidMove
 
@@ -170,7 +172,6 @@ module Round (D: Deck) = struct
 
   (* takes input from the user and parses it into a pokerhand type *)
   let rec parse_input h r =
-    let open String in
     print_endline ("Player 1, your turn! " ^ "Here is your hand: ");
     D.print_hand h;
     print_endline ("And this is the previous hand called: " ^ string_of_pokerhand r);

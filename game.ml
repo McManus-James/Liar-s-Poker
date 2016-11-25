@@ -1,4 +1,4 @@
-open Round;
+open Round
 
 type round_info = {
     cur_player : pid; (* the pid of the player who's turn it currently is *)
@@ -43,8 +43,8 @@ let rec play_round info =
     print_endline cur_p^" called BS!"
                         ^" Let's check if the previous hand is there...";
     if (hand_exists info.cards p) then
-      print_endline (string_of_pokerhand p)^" is here. "
-                    ^cur_p^" loses this round.";
+      let () = print_endline (string_of_pokerhand p)^" is here. "
+                    ^cur_p^" loses this round." in
       cur_player
     else
       print_endline (string_of_pokerhand p)^"is not here."
@@ -67,7 +67,7 @@ let rec update_players loser players accu =
   | (pid,num_cards)::tl ->
       if loser = pid then
         if num_cards = 1 then
-        print_endline "Player "^(string_of_int loser)^" is out!";
+        let () = print_endline "Player "^(string_of_int loser)^" is out!" in
         update_players loser tl accu
         else update_players loser tl ((pid,num_cards-1)::accu)
       else update_players loser tl accu
@@ -82,14 +82,12 @@ let rec play players =
       hands = hands;
       prev_move = BS;
       cards = cards;
-    }
+    } in
   let loser = play_round info in
-  let new_players = update_players loser players []
+  let new_players = update_players loser players [] in
   if List.length new_players = 1 then fst (List.hd new_players)
   else play new_players
 
 let main p_num =
   let players = init_players p_num in
-  let winner = play players
-
-
+  (* let winner =  *)play players
