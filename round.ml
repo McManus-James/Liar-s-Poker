@@ -3,7 +3,7 @@ open Deck
 open Pervasives
 open String
 
-exception InvalidRank
+exception InvalidMove
 module Round (D: Deck) = struct
 
   type rank = int
@@ -63,13 +63,33 @@ module Round (D: Deck) = struct
       | [] -> accum
       | (p, n)::t -> deal_hands t ((p, (D.deal n d))::accum)
 
+  (* returns the pokerhand called inside the Raise *)
+  let unwrap_move move = match move with
+    | Raise p -> p
+    | _ -> raise InvalidMove
+
   (* returns: pid of the losing player of the round *)
   let rec run_turn r_info =
-    match r_info.prev_move with
+    (* match r_info.prev_move with
       | BS p -> if (hand_exists r_info.collective_cards p) then current_player
-                else prev_player
-    else if current_player = 1 then
-      let move = human_turn in
+                else prev_player *)
+    if current_player = 1 then
+      let player_one_hand = assoc 1 pid_hands in
+      let human_move = human_turn player_one_hand (unwrap_move r_info.prev_move) in
+      match human_move with
+        | BS p -> print_endline "You called BS! Let's check if the previous hand is there...";
+                  if (hand_exists r_info.collective_cards p) then
+                    print_endline "Sorry, " ^ (string_of_pokerhand p) ^ "is here. You lose this round.";
+                    current_player
+                  else
+                    print_endline "Congrats! " ^ (string_of_pokerhand p) ^ "is not here.";
+                    prev_player
+        | Raise p -> print_endline "You called " ^ (string_of_pokerhand p) ^ ".";
+                     let new_pid_list = (tl r_info.pid_list)@[current_player] in
+                     let new_r_info = {r_info with
+                                      pid_list = new_pid_list;
+                                      current_player = }
+
 
 
   (* Helper method for modifying the deck returns all but the first [n] elements of [lst]. If [lst] has fewer than
@@ -117,6 +137,7 @@ module Round (D: Deck) = struct
 
   (* takes input from the user and parses it into a pokerhand type *)
   let parse_input (h : hand) (r : pokerhand) : move =
+    print_endline ("Player 1, your turn! " ^ "Here is your hand: ");
     D.print_hand h;
     print_endline ("And this is the previous hand called: " ^ string_of_pokerhand r);
     print_endline "What is your move?";
@@ -145,7 +166,7 @@ module Round (D: Deck) = struct
         | "hc" -> let i = sub call (space + 1) 1 in
                   Raise (HighCard (int_of_string i))
         | "bs" -> BS (r)
-        | _ -> raise InvalidRank
+        | _ -> raise InvalidMove
 
     )
     with
@@ -153,27 +174,24 @@ module Round (D: Deck) = struct
                        parse_input h r
       | Invalid_argument _ -> print_endline "That is not a valid hand. Please try again.";
                               parse_input h r
-      | InvalidRank -> print_endline "That is not a valid hand. Please try again.";
+      | InvalidMove -> print_endline "That is not a valid move. The kinds you can call are
+                                      four, fh, straight, three, tp, pair, hc, and bs. Please try again.";
                        parse_input h r
 
 
   (* [human_turn h r] returns the move that the human player decides to make
    * based on his or her hand [h] and the previous hand called, [r] *)
   let human_turn (h: hand) (r : pokerhand) : move =
-    print_endline ("Player 1, your turn! " ^ "Here is your hand: ");
     let parsed_hand = parse_input h r in
-    (* D.print_hand;
-    print_endline "What is your move?";
-    print_endline ">";
-    let call = trim (lowercase_ascii (read_line ())) in
-    try (let space =
-    let type_of_hand = sub call
-    match call with
-      | ""
+    try (
+      if (valid_call parsed_hand r = false) then raise InvalidMove
+      else parsed_hand
     )
-    with
-      | Not_found _ -> print_endline "That is not a valid hand. Please try again.";
-                       human_turn h r *)
+  with
+    | InvalidMove -> print_endline "That hand is not a higher call than the previous hand. Please try again.";
+                     parse_input h r
+
+
   (* returns true if [p] is a valid rank for a straight; ie [p] must be
    * between 6 and 10 but because a straight must have 5 cards in it so the
    * lowest possible stairght is 2, 3, 4, 5, 6 and the highest is 10, Jack,
