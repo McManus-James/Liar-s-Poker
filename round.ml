@@ -44,24 +44,32 @@ module Round (D: Deck) = struct
       | [] -> accum
       | (p, n)::t -> deal_hands t ((p, (D.deal n d))::accum)
 
+  (* Helper method for modifying the deck returns all but the first [n] elements
+   * of [lst]. If [lst] has fewer than [n] elements, return the empty list. Code
+   * taken from Recitation: Lists, and Testing with OUnit *)
+  let rec drop n h =
+    if n =0 then h else match h with
+      | []->[]
+      | x::xs -> drop (n-1) xs
+
   (* checks if one of the card ranks is in the collective cards. THIS ISN'T
    * QUITE RIGHT THOUGH BECAUSE NEED TO REMOVE THIS CARD FROM THE LIST AFTER
    * IT'S FOUND *)
   let rec check_individual_card_rank rank rank_lst counter =
-    failwith "unimplemented"
-    (* match rank_lst with
+    (* failwith "unimplemented" *)
+    match !rank_lst with
     | [] -> false
     | h::t -> if h = rank then
-                (rank_lst := drop counter !rank_lst;
-                true)
-              else check_individual_card_rank rank t (counter + 1) *)
+                let () = rank_lst := drop counter !rank_lst in
+                true
+              else check_individual_card_rank rank (ref t) (counter + 1)
 
   (* returns true if every card rank in [called_ranks] is in [rank_lst]. Returns
    * false otherwise *)
   let rec check called_ranks rank_lst =
     match called_ranks with
     | [] -> true
-    | h::t -> fst (check_individual_card_rank h rank_lst 1) && check t rank_lst
+    | h::t -> (check_individual_card_rank h rank_lst 1) && check t rank_lst
 
   (* takes a pokerhand [phand] and converts it into a rank list of the ranks of
    * the cards in the hand that's called for checking purposes.
@@ -110,14 +118,6 @@ module Round (D: Deck) = struct
     | Raise p -> p
     | _ -> raise InvalidMove
 
-  (* Helper method for modifying the deck returns all but the first [n] elements
-   * of [lst]. If [lst] has fewer than [n] elements, return the empty list. Code
-   * taken from Recitation: Lists, and Testing with OUnit *)
-  let rec drop n h =
-    if n =0 then h else match h with
-      | []->[]
-      | x::xs -> drop (n-1) xs
-
   (* beats returns true if [p_hand] is a higher ranked pokerhand than
    * [prev_hand], and false otherwise *)
   let beats p_hand prev_hand =
@@ -149,7 +149,6 @@ module Round (D: Deck) = struct
       | Pair _, _ -> false
       | HighCard p, HighCard t -> p > t
       | HighCard _, _ -> false
-      | _ -> false
 
   (* returns true if [p] is a valid rank for a straight; ie [p] must be
    * between 6 and 10 but because a straight must have 5 cards in it so the

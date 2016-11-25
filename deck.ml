@@ -71,7 +71,7 @@ module Deck = struct
    * [deck_helper] to instantiate cards 1-14 for each suit *)
   let rec suit_helper suit_list accum = match suit_list with
     | [] -> accum
-    | h::t -> suit_helper t ((deck_helper h (1--13) [])@accum)
+    | h::t -> suit_helper t ((deck_helper h (2--14) [])@accum)
 
 
   let rec new_deck (e : deck) : deck = ref (suit_helper [Hearts; Spades; Clubs; Diamonds] (!e))
