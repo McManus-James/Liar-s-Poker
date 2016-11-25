@@ -1,15 +1,5 @@
 (* A [Deck] is an OCaml representation of a standard 52 playing card deck *)
 module type Deck = sig
-
-  (* The type of an card rank *)
-  type rank
-
-  (* The type of an card suit *)
-  type suit
-
-  (* The type of a card *)
-  type card
-
   (* The type of a hand *)
   type hand
 
@@ -29,6 +19,9 @@ module type Deck = sig
 
   (* [deal n d] creates a hand of the first [n] cards off of the top of deck d,
    * returning a hand with [n] cards *)
-  val deal: int -> deck -> hand
+  val deal : int -> deck -> hand
+
+  (* prints a hand *)
+  val print_hand : hand -> unit
 
 end

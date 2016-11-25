@@ -1,22 +1,14 @@
-open Pervasives
-open List
-open Random
-open Array
-(* A [Deck] is an OCaml representation of a standard 52 playing card deck *)
-
 module type Deck = sig
-  type rank
-  type suit
-  type card
   type hand
   type deck
   val empty : deck
   val new_deck : deck -> deck
   val shuffle_deck: deck -> deck
-  val deal: int -> deck -> hand
+  val deal : int -> deck -> hand
+  val print_hand : hand -> unit
 end
 
-module Deck:Deck = struct
+module Deck = struct
 
   type rank = int
 
@@ -39,19 +31,20 @@ module Deck:Deck = struct
       else from i (j-1) (j::l)
       in from i j []
 
-  let string_of_rank r =
-    if r = 11 then "Jack"
-    else if r = 12 then "Queen"
-    else if r = 13 then "King"
-    else if r = 1 then "Ace"
-    else string_of_int r
-
   (* [string_of_suit s] returns the string representation of suit [s] *)
   let string_of_suit (s:suit) =
     if s = Spades then "Spades"
     else if s = Clubs then "Clubs"
     else if s = Diamonds then "Diamonds"
     else "Hearts"
+
+  (* [string_of_rank r] returns the string representation of rank [r] *)
+  let string_of_rank r =
+    if r = 11 then "Jack"
+    else if r = 12 then "Queen"
+    else if r = 13 then "King"
+    else if r = 1 then "Ace"
+    else string_of_int r
 
   (* [string_of_card c] formats a  *)
   let string_of_card (c:card) : string =
