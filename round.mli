@@ -1,3 +1,5 @@
+open Deck
+
 (* A [Round] handles a single round of play in the game. It deals each player's
  * hand, gets each player's move on their turn, and checks if a pokerhand exists
  * within all the cards in play the round *)
@@ -36,3 +38,11 @@ module type Round = sig
   val string_of_pokerhand : pokerhand -> string
 
 end
+
+(* (* A [DictionaryMaker] is a functor that makes a [Dictionary]
+ * out of a [Comparable]. *)
+module type RoundMaker =
+  functor (D : Deck) -> Round
+
+(* [GameRound] makes a [Round] *)
+module GameRound : RoundMaker *)

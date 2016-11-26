@@ -17,7 +17,13 @@ module type Round = sig
   val string_of_pokerhand : pokerhand -> string
 end
 
+(* module type RoundMaker =
+  functor (D : Deck) -> Round *)
+
 module Round (D: Deck) = struct
+
+(* module GameRound (D: Deck) = struct *)
+
   type pid = int
 
   type hand = D.hand
@@ -203,6 +209,10 @@ let rec chooseHand1 cur_hand player_hand(p_hands : pokerhand list) : pokerhand =
   let valid_call p_hand prev_hand =
     match p_hand with
       | Straight p -> (valid_straight p) && beats p_hand prev_hand
+      | FullHouse (p1, p2) -> if p1 = p2 then false
+                              else beats p_hand prev_hand
+      | TwoPair (p1, p2) -> if p1 = p2 then false
+                            else beats p_hand prev_hand
       | _ -> beats p_hand prev_hand
 
   (* takes input from the user and parses it into a pokerhand type *)
