@@ -1,12 +1,13 @@
 open Round
 
+module Game (R: Round) = struct
 type round_info = {
-    cur_player : pid; (* the pid of the player who's turn it currently is *)
-    prev_player : pid; (* the previous player who made a turn. Stored for easy access if BS is called and the hand they called is not in the collective_cards *)
-    hands_called : pokerhand list; (* list of pokerhands called so far in the round *)
-    prev_move : move; (* previous move called in round *)
-    hands : pid * hand list; (* association list mapping pids to their respective hands *)
-    cards : card list; (* list of all the cards in play; giant list of everyone's hands *)
+    cur_player : R.pid; (* the pid of the player who's turn it currently is *)
+    prev_player : R.pid; (* the previous player who made a turn. Stored for easy access if BS is called and the hand they called is not in the collective_cards *)
+    hands_called : R.pokerhand list; (* list of pokerhands called so far in the round *)
+    prev_move : R.move; (* previous move called in round *)
+    hands : R.pid * R.hand list; (* association list mapping pids to their respective hands *)
+    cards : R.card list; (* list of all the cards in play; giant list of everyone's hands *)
   }
 
 let rec index_of x lst i =
@@ -91,3 +92,5 @@ let rec play players =
 let main p_num =
   let players = init_players p_num in
   (* let winner =  *)play players
+
+end

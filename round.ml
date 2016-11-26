@@ -27,7 +27,7 @@ module Round (D: Deck) = struct
     | FullHouse of int * int (* first int is rank of the three of
                                a kind; second int is the rank of
                                the pair *)
-    | Straight of int
+    | Straight of int (* the int is the high card in the straight *)
     | ThreeOfAKind of int
     | TwoPair of int * int (* first int is rank of the higher
                             pair; second int is the rank of the
@@ -153,12 +153,12 @@ module Round (D: Deck) = struct
       | HighCard _, _ -> false
 
   (* returns true if [p] is a valid rank for a straight; ie [p] must be
-   * between 6 and 10 but because a straight must have 5 cards in it so the
+   * between 6 and 14 but because a straight must have 5 cards in it so the
    * lowest possible stairght is 2, 3, 4, 5, 6 and the highest is 10, Jack,
    * Queen, King, Ace *)
 
   let valid_straight p =
-    if (p < 6 || p > 10) then false
+    if (p < 6 || p > 14) then false
     else true
 
   (* [valid_call p_hand prev_hand] returns true if the pokerhand [p_hand] the
@@ -178,27 +178,30 @@ module Round (D: Deck) = struct
     print_endline "What is your move?";
     print_endline ">";
     let call = trim (lowercase_ascii (read_line ())) in
+    let length_call = String.length call in
     try (
       let space = index call ' ' in
       let type_of_hand = sub call 0 space in
       match type_of_hand with
-        | "four" -> let i = sub call (space + 1) 1 in
+        | "four" -> let i = String.sub call (space + 1) (length_call - (space + 1)) in
                     Raise (FourOfAKind (int_of_string i))
-        | "fh" -> let first_i = sub call (space + 1) 1 in
-                  let second_space = rindex call ' ' in
-                  let second_i = sub call (second_space + 1) 1 in
+        | "fh" -> let number_part = trim (sub call (space + 1) (length_call - (space + 1))) in
+                  let length_number_part = String.length number_part in
+                  let space_number_part = index number_part ' ' in
+                  let first_i = sub number_part 0 (space_number_part) in
+                  let second_i = sub number_part (space_number_part + 1) (length_number_part - (space_number_part + 1)) in
                   Raise (FullHouse (int_of_string first_i,int_of_string second_i))
-        | "straight" -> let i = sub call (space + 1) 1 in
+        | "straight" -> let i = sub call (space + 1) (length_call - (space + 1)) in
                         Raise (Straight (int_of_string i))
-        | "three" -> let i = sub call (space + 1) 1 in
+        | "three" -> let i = sub call (space + 1) (length_call - (space + 1)) in
                     Raise (ThreeOfAKind (int_of_string i))
         | "tp" -> let first_i = sub call (space + 1) 1 in
                   let second_space = rindex call ' ' in
                   let second_i = sub call (second_space + 1) 1 in
                   Raise (TwoPair (int_of_string first_i,int_of_string second_i))
-        | "pair" -> let i = sub call (space + 1) 1 in
+        | "pair" -> let i = sub call (space + 1) (length_call - (space + 1)) in
                     Raise (Pair (int_of_string i))
-        | "hc" -> let i = sub call (space + 1) 1 in
+        | "hc" -> let i = sub call (space + 1) (length_call - (space + 1)) in
                   Raise (HighCard (int_of_string i))
         | "bs" -> BS (r)
         | _ -> raise InvalidMove
@@ -216,7 +219,7 @@ module Round (D: Deck) = struct
         ^"four, fh, straight, three, tp, pair, hc, and bs. Please try again.");
         parse_input h r
 
-  let human_turn (h: hand) (r : pokerhand) : move =
+  let rec human_turn (h: hand) (r : pokerhand) : move =
     let move = parse_input h r in
     try (
       match move with
@@ -229,7 +232,7 @@ module Round (D: Deck) = struct
     | InvalidMove ->
       print_endline ("That hand is not a higher call than the previous hand. "
                     ^"Please try again.");
-      parse_input h r
+                    human_turn h r
 
   let ai_turn id h ph cards =
     failwith "unimplemented"
