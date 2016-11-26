@@ -88,6 +88,41 @@ module Round (D: Deck) = struct
     | Pair p -> [p; p]
     | HighCard p -> [p]
 
+
+let convert_hand_to_phand hand = match hand with
+  | a::[] -> HighCard a
+  | a::b::[] -> Pair a
+  | a::b::c::[] -> ThreeOfAKind a
+  | a::b::c::d::[] -> if a = c then FourOfAKind a else TwoPair (a, c)
+  | a::b::c::d::e::[] -> if a = b then FullHouse (a, d) else Straight e
+  | _ -> raise InvalidMove
+
+
+let rec matchOneCard card hand ret_hand = match hand with
+  | [] -> None
+  | h::t -> if card = fst h then Some (ret_hand@t)
+    else let ret_hand_update = h::ret_hand in matchOneCard card t ret_hand_update
+
+let rec countOneHand next_hand player_hand ret = match next_hand with
+  | [] -> ret
+  | h::t -> let match_one_card_return = matchOneCard h player_hand [] in (match match_one_card_return with
+    | None -> countOneHand t player_hand ret
+    | Some l -> countOneHand t l (fst ret + 1, snd ret))
+
+let compareHand cur_hand player_hand next_hand = let next = countOneHand (convert_phand_to_hand next_hand) player_hand (0, convert_phand_to_hand next_hand) in
+(if fst next > fst cur_hand then (fst next, convert_hand_to_phand (snd next)) else  cur_hand)
+
+(*
+cur_hand
+*)
+let rec chooseHand1 cur_hand player_hand(p_hands : pokerhand list) : pokerhand =
+  match p_hands with
+    | [] -> snd cur_hand
+    | h::t -> chooseHand1 (compareHand cur_hand player_hand h) player_hand t
+
+
+
+
   (* [hand_exists hands handrank] returns true if [handrank] exists within all
    * the cards in [hands] *)
   let hand_exists hands handrank =

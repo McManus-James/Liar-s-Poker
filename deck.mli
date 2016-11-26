@@ -6,6 +6,16 @@ module type Deck = sig
   (* the type of a deck *)
   type deck
 
+  (* the type of a suit *)
+  type suit
+
+  (* the type of a rank *)
+  type rank
+
+  (* the type of a card *)
+  type card
+
+
   (* [empty] is the empty deck *)
   val empty : deck
 
