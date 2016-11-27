@@ -17,7 +17,13 @@ module type Round = sig
   val string_of_pokerhand : pokerhand -> string
 end
 
+(* module type RoundMaker =
+  functor (D : Deck) -> Round *)
+
 module Round (D: Deck) = struct
+
+(* module GameRound (D: Deck) = struct *)
+
   type pid = int
 
   type hand = D.hand
@@ -27,7 +33,7 @@ module Round (D: Deck) = struct
     | FullHouse of int * int (* first int is rank of the three of
                                a kind; second int is the rank of
                                the pair *)
-    | Straight of int
+    | Straight of int (* the int is the high card in the straight *)
     | ThreeOfAKind of int
     | TwoPair of int * int (* first int is rank of the higher
                             pair; second int is the rank of the
@@ -87,6 +93,41 @@ module Round (D: Deck) = struct
     | TwoPair (p, t) -> List.sort compare [p; p; t; t]
     | Pair p -> [p; p]
     | HighCard p -> [p]
+
+
+let convert_hand_to_phand hand = match hand with
+  | a::[] -> HighCard a
+  | a::b::[] -> Pair a
+  | a::b::c::[] -> ThreeOfAKind a
+  | a::b::c::d::[] -> if a = c then FourOfAKind a else TwoPair (a, c)
+  | a::b::c::d::e::[] -> if a = b then FullHouse (a, d) else Straight e
+  | _ -> raise InvalidMove
+
+
+let rec matchOneCard card hand ret_hand = match hand with
+  | [] -> None
+  | h::t -> if card = fst h then Some (ret_hand@t)
+    else let ret_hand_update = h::ret_hand in matchOneCard card t ret_hand_update
+
+let rec countOneHand next_hand player_hand ret = match next_hand with
+  | [] -> ret
+  | h::t -> let match_one_card_return = matchOneCard h player_hand [] in (match match_one_card_return with
+    | None -> countOneHand t player_hand ret
+    | Some l -> countOneHand t l (fst ret + 1, snd ret))
+
+let compareHand cur_hand player_hand next_hand = let next = countOneHand (convert_phand_to_hand next_hand) player_hand (0, convert_phand_to_hand next_hand) in
+(if fst next > fst cur_hand then (fst next, convert_hand_to_phand (snd next)) else  cur_hand)
+
+(*
+cur_hand
+*)
+let rec chooseHand1 cur_hand player_hand(p_hands : pokerhand list) : pokerhand =
+  match p_hands with
+    | [] -> snd cur_hand
+    | h::t -> chooseHand1 (compareHand cur_hand player_hand h) player_hand t
+
+
+
 
   (* [hand_exists hands handrank] returns true if [handrank] exists within all
    * the cards in [hands] *)
@@ -153,12 +194,12 @@ module Round (D: Deck) = struct
       | HighCard _, _ -> false
 
   (* returns true if [p] is a valid rank for a straight; ie [p] must be
-   * between 6 and 10 but because a straight must have 5 cards in it so the
+   * between 6 and 14 but because a straight must have 5 cards in it so the
    * lowest possible stairght is 2, 3, 4, 5, 6 and the highest is 10, Jack,
    * Queen, King, Ace *)
 
   let valid_straight p =
-    if (p < 6 || p > 10) then false
+    if (p < 6 || p > 14) then false
     else true
 
   (* [valid_call p_hand prev_hand] returns true if the pokerhand [p_hand] the
@@ -168,6 +209,10 @@ module Round (D: Deck) = struct
   let valid_call p_hand prev_hand =
     match p_hand with
       | Straight p -> (valid_straight p) && beats p_hand prev_hand
+      | FullHouse (p1, p2) -> if p1 = p2 then false
+                              else beats p_hand prev_hand
+      | TwoPair (p1, p2) -> if p1 = p2 then false
+                            else beats p_hand prev_hand
       | _ -> beats p_hand prev_hand
 
   (* takes input from the user and parses it into a pokerhand type *)
@@ -178,27 +223,30 @@ module Round (D: Deck) = struct
     print_endline "What is your move?";
     print_endline ">";
     let call = trim (lowercase_ascii (read_line ())) in
+    let length_call = String.length call in
     try (
       let space = index call ' ' in
       let type_of_hand = sub call 0 space in
       match type_of_hand with
-        | "four" -> let i = sub call (space + 1) 1 in
+        | "four" -> let i = String.sub call (space + 1) (length_call - (space + 1)) in
                     Raise (FourOfAKind (int_of_string i))
-        | "fh" -> let first_i = sub call (space + 1) 1 in
-                  let second_space = rindex call ' ' in
-                  let second_i = sub call (second_space + 1) 1 in
+        | "fh" -> let number_part = trim (sub call (space + 1) (length_call - (space + 1))) in
+                  let length_number_part = String.length number_part in
+                  let space_number_part = index number_part ' ' in
+                  let first_i = sub number_part 0 (space_number_part) in
+                  let second_i = sub number_part (space_number_part + 1) (length_number_part - (space_number_part + 1)) in
                   Raise (FullHouse (int_of_string first_i,int_of_string second_i))
-        | "straight" -> let i = sub call (space + 1) 1 in
+        | "straight" -> let i = sub call (space + 1) (length_call - (space + 1)) in
                         Raise (Straight (int_of_string i))
-        | "three" -> let i = sub call (space + 1) 1 in
+        | "three" -> let i = sub call (space + 1) (length_call - (space + 1)) in
                     Raise (ThreeOfAKind (int_of_string i))
         | "tp" -> let first_i = sub call (space + 1) 1 in
                   let second_space = rindex call ' ' in
                   let second_i = sub call (second_space + 1) 1 in
                   Raise (TwoPair (int_of_string first_i,int_of_string second_i))
-        | "pair" -> let i = sub call (space + 1) 1 in
+        | "pair" -> let i = sub call (space + 1) (length_call - (space + 1)) in
                     Raise (Pair (int_of_string i))
-        | "hc" -> let i = sub call (space + 1) 1 in
+        | "hc" -> let i = sub call (space + 1) (length_call - (space + 1)) in
                   Raise (HighCard (int_of_string i))
         | "bs" -> BS (r)
         | _ -> raise InvalidMove
@@ -216,7 +264,7 @@ module Round (D: Deck) = struct
         ^"four, fh, straight, three, tp, pair, hc, and bs. Please try again.");
         parse_input h r
 
-  let human_turn (h: hand) (r : pokerhand) : move =
+  let rec human_turn (h: hand) (r : pokerhand) : move =
     let move = parse_input h r in
     try (
       match move with
@@ -229,7 +277,7 @@ module Round (D: Deck) = struct
     | InvalidMove ->
       print_endline ("That hand is not a higher call than the previous hand. "
                     ^"Please try again.");
-      parse_input h r
+                    human_turn h r
 
   let ai_turn id h ph cards =
     failwith "unimplemented"
