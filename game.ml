@@ -1,7 +1,4 @@
-open Deck
-open Round
-module R = GameRound(Deck)
-open R
+module R = GameRound(CardDeck)
 
 type round_info = {
     players : pid * int list; (* association list mapping the pid to the number of cards that player has *)

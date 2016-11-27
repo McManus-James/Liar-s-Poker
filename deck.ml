@@ -11,7 +11,7 @@ module type Deck = sig
   val print_hand : hand -> unit
 end
 
-module Deck = struct
+module CardDeck : Deck = struct
 
   type rank = int
 

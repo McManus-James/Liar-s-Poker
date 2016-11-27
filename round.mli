@@ -4,6 +4,14 @@ open Deck
  * hand, gets each player's move on their turn, and checks if a pokerhand exists
  * within all the cards in play the round *)
 module type Round = sig
+
+  type suit
+
+  type rank
+
+  (* the type of a card *)
+  type card
+
   (* the type of a player id *)
   type pid
 
@@ -16,13 +24,13 @@ module type Round = sig
   (* The type of a move *)
   type move
 
-  (* [deal_hands n] returns an associative list that maps [pid]s to hands of
-   * [n] cards *)
-  val deal_hands : (pid * int) list -> (pid * hand) list
+  (* [deal_hands n accum] returns an associative list that maps [pid]s to hands of
+   * [n] cards. [accum] is what holds all the new mappings as they are being formed *)
+  val deal_hands : (pid * int) list -> (pid * hand) list -> (pid * hand) list
 
   (* [hand_exists hands handrank] returns true if [handrank] exists within all
    * the cards in [hands] *)
-  val hand_exists : hand list -> pokerhand -> bool
+  val hand_exists : card list -> pokerhand -> bool
 
   (* [human_turn h r] returns the move that the human player decides to make
    * based on his or her hand [h] and the previous hand called, [r] *)
@@ -39,10 +47,10 @@ module type Round = sig
 
 end
 
-(* (* A [DictionaryMaker] is a functor that makes a [Dictionary]
+(* A [DictionaryMaker] is a functor that makes a [Dictionary]
  * out of a [Comparable]. *)
 module type RoundMaker =
   functor (D : Deck) -> Round
 
 (* [GameRound] makes a [Round] *)
-module GameRound : RoundMaker *)
+module GameRound : RoundMaker

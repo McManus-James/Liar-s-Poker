@@ -1,28 +1,49 @@
-open Deck
 open String
 open Pervasives
 open List
 
 exception InvalidMove
 
+module type Deck = sig
+  type hand
+  type suit
+  type rank
+  type card
+  type deck
+  val empty : deck
+  val new_deck : deck -> deck
+  val shuffle_deck: deck -> deck
+  val deal : int -> deck -> hand
+  val print_hand : hand -> unit
+end
+
 module type Round = sig
+  type suit
+  type rank
+  type card
   type pid
   type hand
   type pokerhand
   type move
-  val deal_hands : (pid * int) list -> (pid * hand) list
-  val hand_exists : hand list -> pokerhand -> bool
+  val deal_hands : (pid * int) list -> (pid * hand) list -> (pid * hand) list
+  val hand_exists : card list -> pokerhand -> bool
   val human_turn  : hand -> pokerhand option -> move
   val ai_turn  : pid -> hand -> pokerhand option -> hand -> move
   val string_of_pokerhand : pokerhand -> string
 end
 
-(* module type RoundMaker =
-  functor (D : Deck) -> Round *)
+module type RoundMaker =
+  functor (D : Deck) -> Round
 
-module Round (D: Deck) = struct
+(* module Round (D: Deck) = struct *)
 
-(* module GameRound (D: Deck) = struct *)
+module GameRound (D: Deck) = struct
+
+  type suit = Hearts | Spades | Clubs | Diamonds
+
+  type rank = int
+
+  type card = (rank * suit)
 
   type pid = int
 
@@ -131,7 +152,7 @@ let rec chooseHand1 cur_hand player_hand(p_hands : pokerhand list) : pokerhand =
 
   (* [hand_exists hands handrank] returns true if [handrank] exists within all
    * the cards in [hands] *)
-  let hand_exists hands handrank =
+  let hand_exists (hands : card list) handrank =
     let ranks = ref (List.sort compare (fst (List.split hands))) in
     let hand_rank_lst = convert_phand_to_hand handrank in
     check hand_rank_lst ranks
@@ -141,7 +162,7 @@ let rec chooseHand1 cur_hand player_hand(p_hands : pokerhand list) : pokerhand =
     if r = 11 then "Jack"
     else if r = 12 then "Queen"
     else if r = 13 then "King"
-    else if r = 1 then "Ace"
+    else if r = 14 then "Ace"
     else string_of_int r
 
   let string_of_pokerhand phand =
@@ -215,11 +236,12 @@ let rec chooseHand1 cur_hand player_hand(p_hands : pokerhand list) : pokerhand =
                             else beats p_hand prev_hand
       | _ -> beats p_hand prev_hand
 
+
   (* takes input from the user and parses it into a pokerhand type *)
   let rec parse_input h r =
     print_endline ("Player 1, your turn! " ^ "Here is your hand: ");
     D.print_hand h;
-    print_endline ("And this is the previous hand called: " ^ string_of_pokerhand r);
+    if (r != HighCard 1) then print_endline ("And this is the previous hand called: " ^ string_of_pokerhand r);
     print_endline "What is your move?";
     print_endline ">";
     let call = trim (lowercase_ascii (read_line ())) in
@@ -264,7 +286,23 @@ let rec chooseHand1 cur_hand player_hand(p_hands : pokerhand list) : pokerhand =
         ^"four, fh, straight, three, tp, pair, hc, and bs. Please try again.");
         parse_input h r
 
-  let rec human_turn (h: hand) (r : pokerhand) : move =
+  let rec human_turn (h: hand) (r : pokerhand option) : move =
+    match r with
+      | None -> parse_input h (HighCard 1) (* default dummy value *)
+      | Some p -> let move = parse_input h p in
+                  try (
+                    match move with
+                      | BS _ -> move
+                      | Raise h -> if (valid_call h p) = false
+                                    then raise InvalidMove
+                                   else move
+                  )
+    with
+      | InvalidMove -> print_endline ("That hand is not a higher call than the previous hand. "
+                       ^"Please try again.");
+                       human_turn h r
+
+ (*  let rec human_turn (h: hand) (r : pokerhand option) : move =
     let move = parse_input h r in
     try (
       match move with
@@ -277,7 +315,7 @@ let rec chooseHand1 cur_hand player_hand(p_hands : pokerhand list) : pokerhand =
     | InvalidMove ->
       print_endline ("That hand is not a higher call than the previous hand. "
                     ^"Please try again.");
-                    human_turn h r
+                    human_turn h r *)
 
   let ai_turn id h ph cards =
     failwith "unimplemented"
