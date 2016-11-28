@@ -215,6 +215,7 @@ module GameRound = struct
     let hands = deal_hands players [] (shuffle_deck (new_deck empty)) in
     let cards = split hands |> snd |> flatten in
     { s with
+      cur_player = l;
       players = players;
       hands = hands;
       cards = cards
@@ -704,8 +705,15 @@ let choose_hand3 hand all_hands prev_hands prev_hand =
     | Some h2 -> choose_hand3 h cards hands_called h2
     | None -> failwith "asdf"
 
+(* prints the hand of each player *)
+  let rec print_player_hands (hands : (pid * hand) list) = match hands with
+    | [] -> ()
+    | (pid, hand)::t -> print_endline ("Player " ^ (string_of_int pid) ^ "'s hand is:");
+                        print_hand hand;
+                        print_endline "";
+                        print_player_hands t
+
   let rec play_round s =
-    (* List.map print_endline (List.map (string_of_card) s.cards); *)
     let cur_hand = List.assoc s.cur_player s.hands in
     let move =
       if s.cur_player = 1 then
@@ -717,7 +725,8 @@ let choose_hand3 hand all_hands prev_hands prev_hand =
     match move with
     | BS p ->
       print_endline (cur_p^" called BS!"
-                          ^" Let's check if the previous hand is there...");
+                          ^ " Let's check if the previous hand is there...\n");
+      print_player_hands s.hands;
       if (hand_exists s.cards p) then
         (print_endline ((string_of_pokerhand p)^" is here. "
                       ^cur_p^" loses this round.");

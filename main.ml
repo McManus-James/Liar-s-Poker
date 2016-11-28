@@ -8,7 +8,7 @@
  *)
 
 let () =
-  print_endline ("Welcome to Liar's Poker, "
+  print_endline ("Welcome to Liar's Poker! "
                 ^"Please enter the number of players.\n");
   print_string  "> ";
   let num_players = int_of_string (read_line ()) in
