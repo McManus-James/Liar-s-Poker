@@ -2,6 +2,7 @@
  * hand, gets each player's move on their turn, and checks if a pokerhand exists
  * within all the cards in play the round *)
 module type Round = sig
+
   (* The type of a plyer id *)
   type pid
 
