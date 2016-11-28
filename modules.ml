@@ -536,15 +536,15 @@ let choose_hand3 hand all_hands prev_hands prev_hand =
     else string_of_int r
 
   let string_of_pokerhand phand = match phand with
-    | FourOfAKind p -> "Four " ^ string_of_rank p ^ "s"
-    | FullHouse (p, t) -> "Full house with three " ^ string_of_rank p ^
+    | FourOfAKind p -> "four " ^ string_of_rank p ^ "s"
+    | FullHouse (p, t) -> "full house with three " ^ string_of_rank p ^
                           "s and two " ^ string_of_rank t ^ "s"
-    | Straight p -> "Straight to " ^ string_of_rank p
-    | ThreeOfAKind p -> "Three " ^ string_of_rank p ^ "s"
-    | TwoPair (p, t) -> "Two " ^ string_of_rank p ^ "s and two "
+    | Straight p -> "straight to " ^ string_of_rank p
+    | ThreeOfAKind p -> "three " ^ string_of_rank p ^ "s"
+    | TwoPair (p, t) -> "two " ^ string_of_rank p ^ "s and two "
                         ^ string_of_rank t ^ "s"
-    | Pair p -> "Two " ^ string_of_rank p ^ "s"
-    | HighCard p -> "Highcard of " ^ string_of_rank p
+    | Pair p -> "a pair of " ^ string_of_rank p ^ "s"
+    | HighCard p -> "highcard of " ^ string_of_rank p
 
 
   (* beats returns true if [p_hand] is a higher ranked pokerhand than
@@ -643,9 +643,11 @@ let choose_hand3 hand all_hands prev_hands prev_hand =
                       Raise (Straight (convert_input_rank_to_int i))
       | "three" -> let i = sub call (space + 1) (length_call - (space + 1)) in
                   Raise (ThreeOfAKind (convert_input_rank_to_int i))
-      | "tp" -> let first_i = sub call (space + 1) 1 in
-                let second_space = rindex call ' ' in
-                let second_i = sub call (second_space + 1) 1 in
+      | "tp" -> let number_part = trim (sub call (space + 1) (length_call - (space + 1))) in
+                let length_number_part = String.length number_part in
+                let space_number_part = index number_part ' ' in
+                let first_i = sub number_part 0 (space_number_part) in
+                let second_i = sub number_part (space_number_part + 1) (length_number_part - (space_number_part + 1)) in
                 Raise (TwoPair (convert_input_rank_to_int first_i, convert_input_rank_to_int second_i))
       | "pair" -> let i = sub call (space + 1) (length_call - (space + 1)) in
                   Raise (Pair (convert_input_rank_to_int i))
@@ -710,7 +712,7 @@ let choose_hand3 hand all_hands prev_hands prev_hand =
                       ^cur_p^" loses this round.");
         s.cur_player)
       else
-        (print_endline ((string_of_pokerhand p)^"is not here."
+        (print_endline ((string_of_pokerhand p)^" is not here. "
                       ^prev_p^" loses this round.");
         s.prev_player)
     | Raise p -> print_endline (cur_p^" raised to "
