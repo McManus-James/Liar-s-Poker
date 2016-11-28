@@ -277,28 +277,30 @@ cur_hand
 let rec choose_hand1 cur_hand player_hand_ranks (p_hands : pokerhand list) : pokerhand =
   match p_hands with
     | [] -> snd cur_hand
-    | h::t -> choose_hand1 (compare_hand2 cur_hand player_hand_ranks h) player_hand_ranks t
+    | h::t -> let x = (compare_hand2 cur_hand player_hand_ranks h) in
+      if snd x = (HighCard 2) then choose_hand1 (compare_hand cur_hand player_hand_ranks h) player_hand_ranks t
+      else choose_hand1 x player_hand_ranks t
 
 
 
 let rec get_higher_three n lst =
-  if n > 14 then lst else
+  if n > 14 then List.rev lst else
   get_higher_three (n + 1) ((ThreeOfAKind n)::lst)
 
 let rec get_higher_pair n lst =
-  if n > 14 then lst else
+  if n > 14 then List.rev lst else
   get_higher_pair (n + 1) ((Pair n)::lst)
 
 let rec get_higher_four n lst =
-  if n > 14 then lst else
+  if n > 14 then List.rev lst else
   get_higher_four (n + 1) ((FourOfAKind n)::lst)
 
 let rec get_higher_straight n lst =
-  if n > 14 then lst else
+  if n > 14 then List.rev lst else
   get_higher_straight (n + 1) ((Straight n)::lst)
 
 let rec get_higher_high_card n lst =
-  if n > 14 then lst else
+  if n > 14 then List.rev lst else
   get_higher_high_card (n + 1) ((Straight n)::lst)
 
 let rec get_higher_two_pair_help2 low high lst =
@@ -310,7 +312,7 @@ let rec get_higher_two_pair_help1 high lst =
 else get_higher_two_pair_help1 (high + 1) ((get_higher_two_pair_help2 2 high [])@lst)
 
 let get_higher_two_pair low high =
-  (get_higher_two_pair_help1 (high + 1) [])@(get_higher_two_pair_help2 (low + 1) high [])
+  List.rev ((get_higher_two_pair_help1 (high + 1) [])@(get_higher_two_pair_help2 (low + 1) high []))
 
 let rec get_higher_full_house_help2 low high lst =
     if low >= high then lst else
@@ -321,7 +323,7 @@ let rec get_higher_full_house_help1 high lst =
 else get_higher_full_house_help1 (high + 1) ((get_higher_full_house_help2 2 high [])@lst)
 
 let get_higher_full_house low high =
-  (get_higher_full_house_help1 (high + 1) [])@(get_higher_full_house_help2 (low + 1) high [])
+  List.rev ((get_higher_full_house_help1 (high + 1) [])@(get_higher_full_house_help2 (low + 1) high []))
 
 
 
@@ -479,6 +481,7 @@ let rec get_num hands prev_hand accum = match prev_hand with
     else get_num hands t accum
 
 let bs hands prev_hand =
+  Random.self_init ();
   let random = Random.int 100 in
   let cards = fst (List.split hands) in
   let hand_ranks = convert_phand_to_rank prev_hand in
