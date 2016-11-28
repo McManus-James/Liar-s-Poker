@@ -48,7 +48,7 @@ module GameDeck = struct
     if r = 11 then "Jack"
     else if r = 12 then "Queen"
     else if r = 13 then "King"
-    else if r = 1 then "Ace"
+    else if r = 14 then "Ace"
     else string_of_int r
 
   (* [string_of_card c] formats a  *)
@@ -76,7 +76,7 @@ module GameDeck = struct
    * [deck_helper] to instantiate cards 1-14 for each suit *)
   let rec suit_helper suit_list accum = match suit_list with
     | [] -> accum
-    | h::t -> suit_helper t ((deck_helper h (1--13) [])@accum)
+    | h::t -> suit_helper t ((deck_helper h (2--14) [])@accum)
 
 
   let rec new_deck (e : deck) : deck = ref (suit_helper [Hearts; Spades; Clubs; Diamonds] (!e))
@@ -99,6 +99,7 @@ module GameDeck = struct
   let shuffle_deck (d : deck) : deck =
     let deck = !d in
     let array_deck = Array.of_list deck in
+    Random.self_init ();
     for i=0 to 10000 do
       let first = Random.int 52 in
       let second = Random.int 52 in
@@ -307,11 +308,10 @@ let rec chooseHand1 cur_hand player_hand(p_hands : pokerhand list) : pokerhand =
     if r = 11 then "Jack"
     else if r = 12 then "Queen"
     else if r = 13 then "King"
-    else if r = 1 then "Ace"
+    else if r = 14 then "Ace"
     else string_of_int r
 
-  let string_of_pokerhand phand =
-    match phand with
+  let string_of_pokerhand phand = match phand with
     | FourOfAKind p -> "Four " ^ string_of_rank p ^ "s"
     | FullHouse (p, t) -> "Full house with three " ^ string_of_rank p ^
                           "s and two " ^ string_of_rank t ^ "s"
@@ -322,10 +322,6 @@ let rec chooseHand1 cur_hand player_hand(p_hands : pokerhand list) : pokerhand =
     | Pair p -> "Two " ^ string_of_rank p ^ "s"
     | HighCard p -> "Highcard of " ^ string_of_rank p
 
-  (* returns the pokerhand called inside the Raise *)
-  let unwrap_move move = match move with
-    | Raise p -> p
-    | _ -> raise InvalidMove
 
   (* beats returns true if [p_hand] is a higher ranked pokerhand than
    * [prev_hand], and false otherwise *)
@@ -381,13 +377,17 @@ let rec chooseHand1 cur_hand player_hand(p_hands : pokerhand list) : pokerhand =
                             else beats p_hand prev_hand
       | _ -> beats p_hand prev_hand
 
+  let print_prev_call r = match r with
+    | HighCard 1 -> ()
+    | _ -> print_endline ("And this is the previous hand called: " ^ string_of_pokerhand r)
+
   (* takes input from the user and parses it into a pokerhand type *)
   let rec parse_input h r =
     print_endline ("Player 1, your turn! " ^ "Here is your hand: ");
     print_hand h;
-    print_endline ("And this is the previous hand called: " ^ string_of_pokerhand r);
+    print_prev_call r;
     print_endline "What is your move?";
-    print_endline ">";
+    print_string ">";
     let call = trim (lowercase_ascii (read_line ())) in
     let length_call = String.length call in
     try (
@@ -431,23 +431,24 @@ let rec chooseHand1 cur_hand player_hand(p_hands : pokerhand list) : pokerhand =
         parse_input h r
 
   let rec human_turn (h: hand) (r : pokerhand option) : move =
-    failwith "commented out until it handles a pokerhand option"
-    (* let move = parse_input h r in
-    try (
-      match move with
-      | BS _ -> move
-      | Raise p ->
-        if (valid_call p r) = false then raise InvalidMove
-        else move
-    )
-  with
-    | InvalidMove ->
-      print_endline ("That hand is not a higher call than the previous hand. "
-                    ^"Please try again.");
-                    human_turn h r *)
+    match r with
+      | None -> parse_input h (HighCard 1) (* default dummy value *)
+      | Some p -> let move = parse_input h p in
+                  try (
+                    match move with
+                      | BS _ -> move
+                      | Raise h -> if (valid_call h p) = false
+                                    then raise InvalidMove
+                                   else move
+                  )
+    with
+      | InvalidMove -> print_endline ("That hand is not a higher call than the previous hand. "
+                       ^"Please try again.");
+                       human_turn h r
+
 
   let ai_turn id h ph cards =
-    failwith "unimplemented"
+    failwith "unimplemented ai"
 
   let rec play_round s =
     let cur_hand = List.assoc s.cur_player s.hands in
