@@ -1,4 +1,3 @@
-open Deck
 open String
 open Pervasives
 open List
@@ -7,26 +6,16 @@ exception InvalidMove
 
 module type Round = sig
   type pid
-  type hand
-  type pokerhand
-  type move
-  val deal_hands : (pid * int) list -> (pid * hand) list
-  val hand_exists : hand list -> pokerhand -> bool
-  val human_turn  : hand -> pokerhand option -> move
-  val ai_turn  : pid -> hand -> pokerhand option -> hand -> move
-  val string_of_pokerhand : pokerhand -> string
+  type state
+  val init_state : pid -> state
+  val update_state : pid -> state -> state
+  val play_round : state -> pid
 end
 
-(* module type RoundMaker =
-  functor (D : Deck) -> Round *)
-
-module Round (D: Deck) = struct
-
-(* module GameRound (D: Deck) = struct *)
+module GameRound = struct
+  open GameDeck
 
   type pid = int
-
-  type hand = D.hand
 
   type pokerhand =
     | FourOfAKind of int
@@ -46,11 +35,74 @@ module Round (D: Deck) = struct
     | BS of pokerhand (* The hand which BS was called on *)
     | Raise of pokerhand (* The hand that was Raised *)
 
+  type state = {
+    players : (pid * int) list; (* association list mapping the pid to the number of cards that player has *)
+    cur_player : pid; (* the pid of the player who's turn it currently is *)
+    prev_player : pid; (* the previous player who made a turn. Stored for easy access if BS is called and the hand they called is not in the collective_cards *)
+    hands_called : pokerhand list; (* list of pokerhands called so far in the round *)
+    raised_hand : pokerhand option; (* previous move called in round *)
+    hands : (pid * hand) list; (* association list mapping pids to their respective hands *)
+    cards : hand (* list of all the cards in play; giant list of everyone's hands *)
+  }
+
+  (* initializes the [num_cards] field in a [round_info]
+   * [p_num] is the number of players to initialize
+   * [players] is the association list mapping pids to
+   * the numbers of cards they have *)
+  let rec init_players n players =
+    if n = 0 then players
+    else init_players (n - 1) ((n,4)::players)
+
   let rec deal_hands players accum =
-    let d = D.shuffle_deck (D.new_deck D.empty) in
+    let d = shuffle_deck (new_deck empty) in
     match players with
       | [] -> accum
-      | (p, n)::t -> deal_hands t ((p, (D.deal n d))::accum)
+      | (p, n)::t -> deal_hands t ((p, (deal n d))::accum)
+
+  let init_state n =
+    let players = init_players n [] in
+    let hands = deal_hands players [] in
+    let cards = split hands |> snd |> flatten in
+    { players = players;
+      cur_player = 1;
+      prev_player = 0;
+      hands_called = [];
+      hands = hands;
+      raised_hand = None;
+      cards = cards
+    }
+
+  let rec index_of x lst i =
+    match lst with
+    | [] -> failwith "Not Found"
+    | h::tl -> if h = x then i else index_of x tl (i+1)
+
+  let next_player p players =
+    let pids = fst (split players) in
+    let i = index_of p pids 0 in
+    if i = (length pids -1) then hd pids
+    else nth pids (i+1)
+
+  let rec update_players loser players accu =
+  match players with
+  | [] -> accu
+  | (pid,num_cards)::tl ->
+      if loser = pid then
+        if num_cards = 1 then
+        (print_endline ("Player "^(string_of_int loser)^" is out!");
+        update_players loser tl accu)
+        else update_players loser tl ((pid,num_cards-1)::accu)
+      else update_players loser tl ((pid, num_cards)::accu)
+
+  let update_state l s =
+    let players = update_players l s.players [] in
+    let hands = deal_hands players [] in
+    let cards = split hands |> snd |> flatten in
+    { s with
+      players = players;
+      hands = hands;
+      cards = cards
+    }
 
   (* Helper method for modifying the deck returns all but the first [n] elements
    * of [lst]. If [lst] has fewer than [n] elements, return the empty list. Code
@@ -125,7 +177,6 @@ let rec chooseHand1 cur_hand player_hand(p_hands : pokerhand list) : pokerhand =
   match p_hands with
     | [] -> snd cur_hand
     | h::t -> chooseHand1 (compareHand cur_hand player_hand h) player_hand t
-
 
 
 
@@ -218,7 +269,7 @@ let rec chooseHand1 cur_hand player_hand(p_hands : pokerhand list) : pokerhand =
   (* takes input from the user and parses it into a pokerhand type *)
   let rec parse_input h r =
     print_endline ("Player 1, your turn! " ^ "Here is your hand: ");
-    D.print_hand h;
+    print_hand h;
     print_endline ("And this is the previous hand called: " ^ string_of_pokerhand r);
     print_endline "What is your move?";
     print_endline ">";
@@ -264,8 +315,9 @@ let rec chooseHand1 cur_hand player_hand(p_hands : pokerhand list) : pokerhand =
         ^"four, fh, straight, three, tp, pair, hc, and bs. Please try again.");
         parse_input h r
 
-  let rec human_turn (h: hand) (r : pokerhand) : move =
-    let move = parse_input h r in
+  let rec human_turn (h: hand) (r : pokerhand option) : move =
+    failwith "commented out until it handles a pokerhand option"
+    (* let move = parse_input h r in
     try (
       match move with
       | BS _ -> move
@@ -277,9 +329,43 @@ let rec chooseHand1 cur_hand player_hand(p_hands : pokerhand list) : pokerhand =
     | InvalidMove ->
       print_endline ("That hand is not a higher call than the previous hand. "
                     ^"Please try again.");
-                    human_turn h r
+                    human_turn h r *)
 
   let ai_turn id h ph cards =
     failwith "unimplemented"
 
+  let rec play_round s =
+    let cur_hand = List.assoc s.cur_player s.hands in
+    let move =
+      if s.cur_player = 1 then
+        human_turn cur_hand s.raised_hand
+      else ai_turn s.cur_player cur_hand s.raised_hand s.cards
+    in
+    let cur_p = "Player "^(string_of_int s.cur_player) in
+    let prev_p = "Player "^(string_of_int s.prev_player) in
+    match move with
+    | BS p ->
+      print_endline (cur_p^" called BS!"
+                          ^" Let's check if the previous hand is there...");
+      if (hand_exists s.cards p) then
+        (print_endline ((string_of_pokerhand p)^" is here. "
+                      ^cur_p^" loses this round.");
+        s.cur_player)
+      else
+        (print_endline ((string_of_pokerhand p)^"is not here."
+                      ^prev_p^" loses this round.");
+        s.prev_player)
+    | Raise p -> print_endline (cur_p^" raised to "
+                              ^(string_of_pokerhand p)^".");
+      let new_info =
+        { s with
+          cur_player = next_player s.cur_player s.players;
+          prev_player = s.cur_player;
+          hands_called = p::s.hands_called;
+          raised_hand = Some p;
+        }
+      in
+    play_round new_info
+
 end
+
