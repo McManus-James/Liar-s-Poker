@@ -485,7 +485,7 @@ let choose_hand2 player_hand prev_hands prev_hand =
   let higher_hands = get_higher_hands prev_hand in
   let player_hand_ranks = fst (List.split player_hand) in
   let prev_hand_ranks = get_potential_cards prev_hands in
-  choose_hand1 (0, HighCard 2) (player_hand_ranks@prev_hand_ranks) higher_hands
+  choose_hand1 ((-1), HighCard 2) (player_hand_ranks@prev_hand_ranks) higher_hands
 
 let rec get_num hands prev_hand accum = match prev_hand with
   | [] -> accum
