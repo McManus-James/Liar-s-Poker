@@ -494,7 +494,7 @@ let rec get_num hands prev_hand accum = match prev_hand with
 
 let bs hands prev_hand =
   let random = Random.int 100 in
-  let cards = fst (List.split (List.flatten hands)) in
+  let cards = fst (List.split hands) in
   let hand_ranks = convert_phand_to_rank prev_hand in
   let len = List.length hand_ranks in
   let num = get_num cards hand_ranks 0 in
@@ -513,11 +513,11 @@ let bs hands prev_hand =
   else if dif = 5 && random > 20 then true
   else false
 
-let choose_hand3 hand all_hands prev_hands =
+let choose_hand3 hand all_hands prev_hands prev_hand =
   let next_hand = if List.length prev_hands = 0 then choose_hand2 hand prev_hands (HighCard 2)
-  else choose_hand2 hand prev_hands (List.hd prev_hands) in
-  let is_bs = bs all_hands (List.hd prev_hands) in
-  if is_bs then BS (List.hd prev_hands)
+  else choose_hand2 hand prev_hands prev_hand in
+  let is_bs = bs all_hands prev_hand in
+  if is_bs then BS prev_hand
   else Raise next_hand
 
 
@@ -672,15 +672,16 @@ let choose_hand3 hand all_hands prev_hands =
                        human_turn h r
 
 
-  let ai_turn id h ph cards =
-    failwith "unimplemented ai"
+  let ai_turn id h ph cards hands_called = match ph with
+    | Some h2 -> choose_hand3 h cards hands_called h2
+    | None -> failwith "asdf"
 
   let rec play_round s =
     let cur_hand = List.assoc s.cur_player s.hands in
     let move =
       if s.cur_player = 1 then
         human_turn cur_hand s.raised_hand
-      else ai_turn s.cur_player cur_hand s.raised_hand s.cards
+      else ai_turn s.cur_player cur_hand s.raised_hand s.cards s.hands_called
     in
     let cur_p = "Player "^(string_of_int s.cur_player) in
     let prev_p = "Player "^(string_of_int s.prev_player) in
