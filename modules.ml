@@ -55,7 +55,8 @@ module GameDeck = struct
   let string_of_card (c:card) : string =
     string_of_rank (fst c) ^ " of " ^ string_of_suit (snd c)
 
-  (* print a hand. h is the hand to print. *)
+  (* print a hand. h is the hand to print. !!!!!!!!!!Do we want this as a visible interface in the
+   * deck sig???? *)
   let rec print_hand h = match h with
     | [] -> ()
     | h::t -> print_endline (string_of_card h);
@@ -255,8 +256,15 @@ let rec count_one_hand next_hand player_hand ret = match next_hand with
     | None -> count_one_hand t player_hand ret
     | Some l -> count_one_hand t l (fst ret + 1, snd ret))
 
-let compare_hand cur_hand player_hand next_hand = let next = count_one_hand (convert_phand_to_rank next_hand) player_hand (0, convert_phand_to_rank next_hand) in
-(if fst next > fst cur_hand then (fst next, convert_rank_to_phand (snd next)) else  cur_hand)
+let compare_hand cur_hand player_hand next_hand =
+  let next_hand_rank = convert_phand_to_rank next_hand in
+  let next = count_one_hand (next_hand_rank) player_hand
+    (0, next_hand_rank) in
+  let len = List.length next_hand_rank in
+  let diff = len - (fst next) in
+  let diff2 = (fst next) - diff in
+  (if fst next > fst cur_hand then
+    (fst next, convert_rank_to_phand (snd next)) else  cur_hand)
 
 (*
 cur_hand
@@ -692,15 +700,8 @@ let choose_hand3 hand all_hands prev_hands prev_hand =
     | Some h2 -> choose_hand3 h cards hands_called h2
     | None -> failwith "asdf"
 
-(* prints the hand of each player *)
-  let rec print_player_hands (hands : (pid * hand) list) = match hands with
-    | [] -> ()
-    | (pid, hand)::t -> print_endline ("Player " ^ (string_of_int pid) ^ "'s hand is:");
-                        print_hand hand;
-                        print_endline "";
-                        print_player_hands t
-
   let rec play_round s =
+    (* List.map print_endline (List.map (string_of_card) s.cards); *)
     let cur_hand = List.assoc s.cur_player s.hands in
     let move =
       if s.cur_player = 1 then
@@ -712,9 +713,7 @@ let choose_hand3 hand all_hands prev_hands prev_hand =
     match move with
     | BS p ->
       print_endline (cur_p^" called BS!"
-                          ^ " Let's check if the previous hand is there...");
-      print_endline "";
-      print_player_hands s.hands;
+                          ^" Let's check if the previous hand is there...");
       if (hand_exists s.cards p) then
         (print_endline ((string_of_pokerhand p)^" is here. "
                       ^cur_p^" loses this round.");
