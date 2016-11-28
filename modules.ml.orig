@@ -55,8 +55,7 @@ module GameDeck = struct
   let string_of_card (c:card) : string =
     string_of_rank (fst c) ^ " of " ^ string_of_suit (snd c)
 
-  (* print a hand. h is the hand to print. !!!!!!!!!!Do we want this as a visible interface in the
-   * deck sig???? *)
+  (* print a hand. h is the hand to print. *)
   let rec print_hand h = match h with
     | [] -> ()
     | h::t -> print_endline (string_of_card h);
@@ -257,12 +256,17 @@ let rec count_one_hand next_hand player_hand ret = match next_hand with
     | None -> count_one_hand t player_hand ret
     | Some l -> count_one_hand t l (fst ret + 1, snd ret))
 
+<<<<<<< HEAD
 let compare_hand cur_hand player_hand next_hand =
   let next_hand_rank = convert_phand_to_rank next_hand in
   let next = count_one_hand (next_hand_rank) player_hand
     (0, next_hand_rank) in
   (if fst next > fst cur_hand then
     (fst next, convert_rank_to_phand (snd next)) else  cur_hand)
+=======
+let compare_hand cur_hand player_hand next_hand = let next = count_one_hand (convert_phand_to_rank next_hand) player_hand (0, convert_phand_to_rank next_hand) in
+(if fst next > fst cur_hand then (fst next, convert_rank_to_phand (snd next)) else  cur_hand)
+>>>>>>> 894b6881f39bd9840dd6f6af09f78d9b5dee76f4
 
 let compare_hand2 cur_hand player_hand next_hand =
   let next_hand_rank = convert_phand_to_rank next_hand in
@@ -703,7 +707,7 @@ let choose_hand3 hand all_hands prev_hands prev_hand =
 
   let ai_turn id h ph cards hands_called = match ph with
     | Some h2 -> choose_hand3 h cards hands_called h2
-    | None -> choose_hand3 h cards hands_called (HighCard 1)
+    | None -> failwith "asdf"
 
 (* prints the hand of each player *)
   let rec print_player_hands (hands : (pid * hand) list) = match hands with
