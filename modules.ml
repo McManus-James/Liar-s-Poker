@@ -677,6 +677,7 @@ let choose_hand3 hand all_hands prev_hands prev_hand =
     | None -> failwith "asdf"
 
   let rec play_round s =
+    List.map print_endline (List.map (string_of_card) s.cards);
     let cur_hand = List.assoc s.cur_player s.hands in
     let move =
       if s.cur_player = 1 then
