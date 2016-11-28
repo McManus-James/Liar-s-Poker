@@ -37,11 +37,11 @@ module GameDeck = struct
       in from i j []
 
   (* [string_of_suit s] returns the string representation of suit [s] *)
-  let string_of_suit (s:suit) =
-    if s = Spades then "Spades"
-    else if s = Clubs then "Clubs"
-    else if s = Diamonds then "Diamonds"
-    else "Hearts"
+  let string_of_suit (s:suit) = match s with
+    | Spades -> "Spades"
+    | Clubs -> "Clubs"
+    | Diamonds -> "Diamonds"
+    | Hearts -> "Hearts"
 
   (* [string_of_rank r] returns the string representation of rank [r] *)
   let string_of_rank r =
@@ -107,8 +107,8 @@ module GameDeck = struct
       let old_card_two = array_deck.(second) in
       array_deck.(second) <- old_card_one;
       array_deck.(first) <- old_card_two;
-      d := (Array.to_list array_deck);
     done;
+    d := (Array.to_list array_deck);
     d
 
   let deal (n : int) (d : deck) : hand =
@@ -119,6 +119,7 @@ module GameDeck = struct
 end
 
 exception InvalidMove
+exception InvalidRank
 
 module type Round = sig
   type pid
@@ -169,15 +170,14 @@ module GameRound = struct
     if n = 0 then players
     else init_players (n - 1) ((n,4)::players)
 
-  let rec deal_hands players accum =
-    let d = shuffle_deck (new_deck empty) in
+  let rec deal_hands players accum d =
     match players with
       | [] -> accum
-      | (p, n)::t -> deal_hands t ((p, (deal n d))::accum)
+      | (p, n)::t -> deal_hands t ((p, (deal n d))::accum) d
 
   let init_state n =
     let players = init_players n [] in
-    let hands = deal_hands players [] in
+    let hands = deal_hands players [] (shuffle_deck (new_deck empty)) in
     let cards = split hands |> snd |> flatten in
     { players = players;
       cur_player = 1;
@@ -212,7 +212,7 @@ module GameRound = struct
 
   let update_state l s =
     let players = update_players l s.players [] in
-    let hands = deal_hands players [] in
+    let hands = deal_hands players [] (shuffle_deck (new_deck empty)) in
     let cards = split hands |> snd |> flatten in
     { s with
       players = players;
@@ -220,32 +220,6 @@ module GameRound = struct
       cards = cards
     }
 
-  (* Helper method for modifying the deck returns all but the first [n] elements
-   * of [lst]. If [lst] has fewer than [n] elements, return the empty list. Code
-   * taken from Recitation: Lists, and Testing with OUnit *)
-  let rec drop n h =
-    if n =0 then h else match h with
-      | []->[]
-      | x::xs -> drop (n-1) xs
-
-  (* checks if one of the card ranks is in the collective cards. THIS ISN'T
-   * QUITE RIGHT THOUGH BECAUSE NEED TO REMOVE THIS CARD FROM THE LIST AFTER
-   * IT'S FOUND *)
-  let rec check_individual_card_rank rank rank_lst counter =
-    (* failwith "unimplemented" *)
-    match !rank_lst with
-    | [] -> false
-    | h::t -> if h = rank then
-                let () = rank_lst := drop counter !rank_lst in
-                true
-              else check_individual_card_rank rank (ref t) (counter + 1)
-
-  (* returns true if every card rank in [called_ranks] is in [rank_lst]. Returns
-   * false otherwise *)
-  let rec check called_ranks rank_lst =
-    match called_ranks with
-    | [] -> true
-    | h::t -> (check_individual_card_rank h rank_lst 1) && check t rank_lst
 
   (* takes a pokerhand [phand] and converts it into a rank list of the ranks of
    * the cards in the hand that's called for checking purposes.
@@ -521,12 +495,37 @@ let choose_hand3 hand all_hands prev_hands prev_hand =
   else Raise next_hand
 
 
-  (* [hand_exists hands handrank] returns true if [handrank] exists within all
-   * the cards in [hands] *)
+  (* returns true if every card rank in [called_ranks] is in [rank_lst]. Returns
+   * false otherwise *)
+  let rec check_straight called_ranks rank_lst =
+    match called_ranks with
+      | [] -> true
+      | h::t -> (List.exists (fun x -> x = h) rank_lst) && check_straight t rank_lst
+
   let hand_exists hands handrank =
-    let ranks = ref (List.sort compare (fst (List.split hands))) in
+    let ranks = (List.sort compare (fst (List.split hands))) in
     let hand_rank_lst = convert_phand_to_rank handrank in
-    check hand_rank_lst ranks
+    match handrank with
+      | HighCard p -> List.exists (fun x -> x = p) ranks
+      | Pair p -> let lst = List.filter (fun x -> x = p) ranks in
+                  if (length lst > 1) then true
+                  else false
+      | TwoPair (p, t) -> let lst = List.filter (fun x -> x = p) ranks in
+                          let lst2 = List.filter (fun x -> x = t) ranks in
+                          if (length lst > 1) && (length lst2 > 1) then true
+                          else false
+      | ThreeOfAKind p -> let lst = List.filter (fun x -> x = p) ranks in
+                          if (length lst > 2) then true
+                          else false
+      | Straight p -> check_straight hand_rank_lst ranks
+      | FullHouse (p, t) -> let lst = List.filter (fun x -> x = p) ranks in
+                            let lst2 = List.filter (fun x -> x = t) ranks in
+                            if (length lst > 2) && (length lst2 > 1) then true
+                            else false
+      | FourOfAKind p -> let lst = List.filter (fun x -> x = p) ranks in
+                         if (length lst > 3) then true
+                         else false
+
 
   (* [string_of_rank r] returns the string representation of rank [r] *)
   let string_of_rank r =
@@ -606,6 +605,19 @@ let choose_hand3 hand all_hands prev_hands prev_hand =
     | HighCard 1 -> ()
     | _ -> print_endline ("And this is the previous hand called: " ^ string_of_pokerhand r)
 
+
+  let convert_input_rank_to_int rank = match rank with
+    | ("ace" | "aces") -> 14
+    | ("king" | "kings") -> 13
+    | ("queen" | "queens") -> 12
+    | ("jack" | "jacks") -> 11
+    | _ -> try (let i = (int_of_string rank) in
+           if (i > 1) && (i < 15) then i
+           else raise InvalidRank)
+    with
+      | Failure "int_of_string" -> raise InvalidRank
+
+
   (* takes input from the user and parses it into a pokerhand type *)
   let rec parse_input h r =
     print_endline ("Player 1, your turn! " ^ "Here is your hand: ");
@@ -616,35 +628,35 @@ let choose_hand3 hand all_hands prev_hands prev_hand =
     let call = trim (lowercase_ascii (read_line ())) in
     let length_call = String.length call in
     try (
-      let space = index call ' ' in
-      let type_of_hand = sub call 0 space in
-      match type_of_hand with
-        | "four" -> let i = String.sub call (space + 1) (length_call - (space + 1)) in
-                    Raise (FourOfAKind (int_of_string i))
-        | "fh" -> let number_part = trim (sub call (space + 1) (length_call - (space + 1))) in
-                  let length_number_part = String.length number_part in
-                  let space_number_part = index number_part ' ' in
-                  let first_i = sub number_part 0 (space_number_part) in
-                  let second_i = sub number_part (space_number_part + 1) (length_number_part - (space_number_part + 1)) in
-                  Raise (FullHouse (int_of_string first_i,int_of_string second_i))
-        | "straight" -> let i = sub call (space + 1) (length_call - (space + 1)) in
-                        Raise (Straight (int_of_string i))
-        | "three" -> let i = sub call (space + 1) (length_call - (space + 1)) in
-                    Raise (ThreeOfAKind (int_of_string i))
-        | "tp" -> let first_i = sub call (space + 1) 1 in
-                  let second_space = rindex call ' ' in
-                  let second_i = sub call (second_space + 1) 1 in
-                  Raise (TwoPair (int_of_string first_i,int_of_string second_i))
-        | "pair" -> let i = sub call (space + 1) (length_call - (space + 1)) in
-                    Raise (Pair (int_of_string i))
-        | "hc" -> let i = sub call (space + 1) (length_call - (space + 1)) in
-                  Raise (HighCard (int_of_string i))
-        | "bs" -> BS (r)
-        | _ -> raise InvalidMove
+    let space = index call ' ' in
+    let type_of_hand = sub call 0 space in
+    match type_of_hand with
+      | "four" -> let i = String.sub call (space + 1) (length_call - (space + 1)) in
+                  Raise (FourOfAKind (convert_input_rank_to_int i))
+      | "fh" -> let number_part = trim (sub call (space + 1) (length_call - (space + 1))) in
+                let length_number_part = String.length number_part in
+                let space_number_part = index number_part ' ' in
+                let first_i = sub number_part 0 (space_number_part) in
+                let second_i = sub number_part (space_number_part + 1) (length_number_part - (space_number_part + 1)) in
+                Raise (FullHouse (convert_input_rank_to_int first_i, convert_input_rank_to_int second_i))
+      | "straight" -> let i = sub call (space + 1) (length_call - (space + 1)) in
+                      Raise (Straight (convert_input_rank_to_int i))
+      | "three" -> let i = sub call (space + 1) (length_call - (space + 1)) in
+                  Raise (ThreeOfAKind (convert_input_rank_to_int i))
+      | "tp" -> let first_i = sub call (space + 1) 1 in
+                let second_space = rindex call ' ' in
+                let second_i = sub call (second_space + 1) 1 in
+                Raise (TwoPair (convert_input_rank_to_int first_i, convert_input_rank_to_int second_i))
+      | "pair" -> let i = sub call (space + 1) (length_call - (space + 1)) in
+                  Raise (Pair (convert_input_rank_to_int i))
+      | "hc" -> let i = sub call (space + 1) (length_call - (space + 1)) in
+                Raise (HighCard (convert_input_rank_to_int i))
+      | "bs" -> BS (r)
+      | _ -> raise InvalidMove
 
     )
     with
-      | Not_found  ->
+      | Not_found ->
         print_endline "That is not a valid hand type. Please try again.";
         parse_input h r
       | Invalid_argument _->
@@ -654,6 +666,9 @@ let choose_hand3 hand all_hands prev_hands prev_hand =
         print_endline ("That is not a valid move. The kinds you can call are "
         ^"four, fh, straight, three, tp, pair, hc, and bs. Please try again.");
         parse_input h r
+      | InvalidRank -> print_endline ("That is not a valid rank to call. Please try again.");
+                       parse_input h r
+      (* | Failure "int_of_string" ->  *)
 
   let rec human_turn (h: hand) (r : pokerhand option) : move =
     match r with
@@ -677,7 +692,7 @@ let choose_hand3 hand all_hands prev_hands prev_hand =
     | None -> failwith "asdf"
 
   let rec play_round s =
-    List.map print_endline (List.map (string_of_card) s.cards);
+    (* List.map print_endline (List.map (string_of_card) s.cards); *)
     let cur_hand = List.assoc s.cur_player s.hands in
     let move =
       if s.cur_player = 1 then
