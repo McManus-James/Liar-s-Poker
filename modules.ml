@@ -260,11 +260,15 @@ let compare_hand cur_hand player_hand next_hand =
   let next_hand_rank = convert_phand_to_rank next_hand in
   let next = count_one_hand (next_hand_rank) player_hand
     (0, next_hand_rank) in
-  let len = List.length next_hand_rank in
-  let diff = len - (fst next) in
-  let diff2 = (fst next) - diff in
   (if fst next > fst cur_hand then
     (fst next, convert_rank_to_phand (snd next)) else  cur_hand)
+
+let compare_hand2 cur_hand player_hand next_hand =
+  let next_hand_rank = convert_phand_to_rank next_hand in
+  let next = count_one_hand (next_hand_rank) player_hand
+    (0, next_hand_rank) in
+  if fst next > 0 && (fst next) - (List.length next_hand_rank) = 0 then (fst next, convert_rank_to_phand (snd next))
+else cur_hand
 
 (*
 cur_hand
@@ -272,7 +276,7 @@ cur_hand
 let rec choose_hand1 cur_hand player_hand_ranks (p_hands : pokerhand list) : pokerhand =
   match p_hands with
     | [] -> snd cur_hand
-    | h::t -> choose_hand1 (compare_hand cur_hand player_hand_ranks h) player_hand_ranks t
+    | h::t -> choose_hand1 (compare_hand2 cur_hand player_hand_ranks h) player_hand_ranks t
 
 
 
