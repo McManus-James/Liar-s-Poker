@@ -207,8 +207,8 @@ module GameRound = struct
         if num_cards = 1 then
         (print_endline ("Player "^(string_of_int loser)^" is out!");
         update_players loser tl accu)
-        else update_players loser tl ((pid,num_cards-1)::accu)
-      else update_players loser tl ((pid, num_cards)::accu)
+        else update_players loser tl (accu@[(pid,num_cards-1)])
+      else update_players loser tl (accu@[(pid, num_cards)])
 
   let update_state l s =
     let players = update_players l s.players [] in
@@ -296,12 +296,13 @@ let rec get_higher_four n lst =
   get_higher_four (n + 1) ((FourOfAKind n)::lst)
 
 let rec get_higher_straight n lst =
-  if n > 14 then List.rev lst else
-  get_higher_straight (n + 1) ((Straight n)::lst)
+  if n > 14 then List.rev lst
+  else if n < 6 then get_higher_straight (n + 1) lst
+  else get_higher_straight (n + 1) ((Straight n)::lst)
 
 let rec get_higher_high_card n lst =
   if n > 14 then List.rev lst else
-  get_higher_high_card (n + 1) ((Straight n)::lst)
+  get_higher_high_card (n + 1) ((HighCard n)::lst)
 
 let rec get_higher_two_pair_help2 low high lst =
     if low >= high then lst else
@@ -445,7 +446,7 @@ let rec add_pairs hand_lists potential_cards two_lst = match two_lst with
 let rec add_high potential_cards two_lst = match two_lst with
   | [] -> potential_cards
   | h::t -> add_high ((convert_phand_to_rank (h))@potential_cards) t
-    | _ -> failwith "somethin dun fuck up"
+  (*   | _ -> failwith "somethin dun fuck up" *)
 
 
 let rec add_straights_help potential_cards straight_lst = match straight_lst with
@@ -489,12 +490,15 @@ let bs hands prev_hand =
   let num = get_num cards hand_ranks 0 in
   let dif = len - num in
   if dif = 0 then
-    if len = 1 && random > 90 then true
-    else if len = 2 && random > 80 then true
-    else if len = 3 && random > 70 then true
-    else if len = 4 && random > 50 then true
-    else if len = 5 && random > 40 then true
-    else false
+    (match prev_hand with
+      | HighCard _ -> if random > 95 then true else false
+      | Pair _ -> if random > 90 then true else false
+      | TwoPair _ -> if random > 80 then true else false
+      | ThreeOfAKind _ -> if random > 60 then true else false
+      | Straight _ -> if random > 60 then true else false
+      | FullHouse _ -> if random > 40 then true else false
+      | FourOfAKind _ -> if random > 30 then true else false
+    )
   else if dif = 1 && random > 90 then true
   else if dif = 2 && random > 85 then true
   else if dif = 3 && random > 50 then true
@@ -502,11 +506,30 @@ let bs hands prev_hand =
   else if dif = 5 && random > 20 then true
   else false
 
-let choose_hand3 hand all_hands prev_hands prev_hand =
-  let next_hand = if List.length prev_hands = 0 then choose_hand2 hand prev_hands (HighCard 2)
-  else choose_hand2 hand prev_hands prev_hand in
-  let is_bs = bs all_hands prev_hand in
+let choose_hand3 hand all_hands prev_hands prev_hand first_hand =
+  Random.self_init ();
+  let lie = Random.int 6 in
+  Random.self_init ();
+  let automatic_bs = Random.int 11 in
+  let new_hand = if lie > 3 then (
+    match hand with
+      | h::t -> ((GameDeck.take 1 [])@t)
+      | _ -> hand)
+  else if lie > 4 then (
+    match hand with
+      | h1::h2::t -> ((GameDeck.take 2 [])@t)
+      | _ -> hand)
+  else hand in
+  let next_hand = if List.length prev_hands = 0 then choose_hand2 new_hand prev_hands (HighCard 2)
+  else choose_hand2 new_hand prev_hands prev_hand in
+  let len = List.length (convert_phand_to_rank next_hand) in
+  let cards_present = count_one_hand (convert_phand_to_rank next_hand) (fst (List.split hand)) (0, convert_phand_to_rank next_hand) in
+  let is_bs = if first_hand then false else bs all_hands prev_hand in
+  let dif = len - fst cards_present in
   if is_bs then BS prev_hand
+  else if dif >= 2 && automatic_bs > 7 then BS prev_hand
+  else if dif >= 3 && automatic_bs > 4 then BS prev_hand
+  else if dif >= 4 && automatic_bs > 3 then BS prev_hand
   else Raise next_hand
 
 
@@ -542,24 +565,16 @@ let choose_hand3 hand all_hands prev_hands prev_hand =
                          else false
 
 
-  (* [string_of_rank r] returns the string representation of rank [r] *)
-  let string_of_rank r =
-    if r = 11 then "Jack"
-    else if r = 12 then "Queen"
-    else if r = 13 then "King"
-    else if r = 14 then "Ace"
-    else string_of_int r
-
   let string_of_pokerhand phand = match phand with
-    | FourOfAKind p -> "four " ^ string_of_rank p ^ "s"
-    | FullHouse (p, t) -> "full house with three " ^ string_of_rank p ^
-                          "s and two " ^ string_of_rank t ^ "s"
-    | Straight p -> "straight to " ^ string_of_rank p
-    | ThreeOfAKind p -> "three " ^ string_of_rank p ^ "s"
-    | TwoPair (p, t) -> "two " ^ string_of_rank p ^ "s and two "
-                        ^ string_of_rank t ^ "s"
-    | Pair p -> "a pair of " ^ string_of_rank p ^ "s"
-    | HighCard p -> "highcard of " ^ string_of_rank p
+    | FourOfAKind p -> "four " ^ GameDeck.string_of_rank p ^ "s"
+    | FullHouse (p, t) -> "full house with three " ^ GameDeck.string_of_rank p ^
+                          "s and two " ^ GameDeck.string_of_rank t ^ "s"
+    | Straight p -> "straight to " ^ GameDeck.string_of_rank p
+    | ThreeOfAKind p -> "three " ^ GameDeck.string_of_rank p ^ "s"
+    | TwoPair (p, t) -> "two " ^ GameDeck.string_of_rank p ^ "s and two "
+                        ^ GameDeck.string_of_rank t ^ "s"
+    | Pair p -> "a pair of " ^ GameDeck.string_of_rank p ^ "s"
+    | HighCard p -> "highcard of " ^ GameDeck.string_of_rank p
 
 
   (* beats returns true if [p_hand] is a higher ranked pokerhand than
@@ -642,7 +657,8 @@ let choose_hand3 hand all_hands prev_hands prev_hand =
     print_string ">";
     let call = trim (lowercase_ascii (read_line ())) in
     let length_call = String.length call in
-    try (
+    if call = "bs" then BS (r)
+    else try (
     let space = index call ' ' in
     let type_of_hand = sub call 0 space in
     match type_of_hand with
@@ -668,7 +684,6 @@ let choose_hand3 hand all_hands prev_hands prev_hand =
                   Raise (Pair (convert_input_rank_to_int i))
       | "hc" -> let i = sub call (space + 1) (length_call - (space + 1)) in
                 Raise (HighCard (convert_input_rank_to_int i))
-      | "bs" -> BS (r)
       | _ -> raise InvalidMove
 
     )
@@ -681,7 +696,7 @@ let choose_hand3 hand all_hands prev_hands prev_hand =
         parse_input h r
       | InvalidMove ->
         print_endline ("That is not a valid move. The kinds you can call are "
-        ^"four, fh, straight, three, tp, pair, hc, and bs. Please try again.");
+        ^"four, fh, straight, three, tp, pair, and hc. You may also call bs. Please try again.");
         parse_input h r
       | InvalidRank -> print_endline ("That is not a valid rank to call. Please try again.");
                        parse_input h r
@@ -704,9 +719,11 @@ let choose_hand3 hand all_hands prev_hands prev_hand =
                        human_turn h r
 
 
-  let ai_turn id h ph cards hands_called = match ph with
-    | Some h2 -> choose_hand3 h cards hands_called h2
-    | None -> choose_hand3 h cards hands_called (HighCard 1)
+  let ai_turn id h ph cards hands_called =   match ph with
+    | Some h2 -> choose_hand3 h cards hands_called h2 false
+    | None -> choose_hand3 h cards hands_called (HighCard 1) true
+
+
 
 (* prints the hand of each player *)
   let rec print_player_hands (hands : (pid * hand) list) = match hands with
