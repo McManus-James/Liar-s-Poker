@@ -55,8 +55,7 @@ module GameDeck = struct
   let string_of_card (c:card) : string =
     string_of_rank (fst c) ^ " of " ^ string_of_suit (snd c)
 
-  (* print a hand. h is the hand to print. !!!!!!!!!!Do we want this as a visible interface in the
-   * deck sig???? *)
+  (* print a hand. h is the hand to print. *)
   let rec print_hand h = match h with
     | [] -> ()
     | h::t -> print_endline (string_of_card h);
@@ -207,8 +206,8 @@ module GameRound = struct
         if num_cards = 1 then
         (print_endline ("Player "^(string_of_int loser)^" is out!");
         update_players loser tl accu)
-        else update_players loser tl (accu@[(pid,num_cards-1)])
-      else update_players loser tl (accu@[(pid, num_cards)])
+        else update_players loser tl ((pid,num_cards-1)::accu)
+      else update_players loser tl ((pid, num_cards)::accu)
 
   let update_state l s =
     let players = update_players l s.players [] in
@@ -257,12 +256,17 @@ let rec count_one_hand next_hand player_hand ret = match next_hand with
     | None -> count_one_hand t player_hand ret
     | Some l -> count_one_hand t l (fst ret + 1, snd ret))
 
+<<<<<<< HEAD
 let compare_hand cur_hand player_hand next_hand =
   let next_hand_rank = convert_phand_to_rank next_hand in
   let next = count_one_hand (next_hand_rank) player_hand
     (0, next_hand_rank) in
   (if fst next > fst cur_hand then
     (fst next, convert_rank_to_phand (snd next)) else  cur_hand)
+=======
+let compare_hand cur_hand player_hand next_hand = let next = count_one_hand (convert_phand_to_rank next_hand) player_hand (0, convert_phand_to_rank next_hand) in
+(if fst next > fst cur_hand then (fst next, convert_rank_to_phand (snd next)) else  cur_hand)
+>>>>>>> 894b6881f39bd9840dd6f6af09f78d9b5dee76f4
 
 let compare_hand2 cur_hand player_hand next_hand =
   let next_hand_rank = convert_phand_to_rank next_hand in
@@ -277,30 +281,28 @@ cur_hand
 let rec choose_hand1 cur_hand player_hand_ranks (p_hands : pokerhand list) : pokerhand =
   match p_hands with
     | [] -> snd cur_hand
-    | h::t -> let x = (compare_hand2 cur_hand player_hand_ranks h) in
-      if snd x = (HighCard 2) then choose_hand1 (compare_hand cur_hand player_hand_ranks h) player_hand_ranks t
-      else choose_hand1 x player_hand_ranks t
+    | h::t -> choose_hand1 (compare_hand2 cur_hand player_hand_ranks h) player_hand_ranks t
 
 
 
 let rec get_higher_three n lst =
-  if n > 14 then List.rev lst else
+  if n > 14 then lst else
   get_higher_three (n + 1) ((ThreeOfAKind n)::lst)
 
 let rec get_higher_pair n lst =
-  if n > 14 then List.rev lst else
+  if n > 14 then lst else
   get_higher_pair (n + 1) ((Pair n)::lst)
 
 let rec get_higher_four n lst =
-  if n > 14 then List.rev lst else
+  if n > 14 then lst else
   get_higher_four (n + 1) ((FourOfAKind n)::lst)
 
 let rec get_higher_straight n lst =
-  if n > 14 then List.rev lst else
+  if n > 14 then lst else
   get_higher_straight (n + 1) ((Straight n)::lst)
 
 let rec get_higher_high_card n lst =
-  if n > 14 then List.rev lst else
+  if n > 14 then lst else
   get_higher_high_card (n + 1) ((Straight n)::lst)
 
 let rec get_higher_two_pair_help2 low high lst =
@@ -312,7 +314,7 @@ let rec get_higher_two_pair_help1 high lst =
 else get_higher_two_pair_help1 (high + 1) ((get_higher_two_pair_help2 2 high [])@lst)
 
 let get_higher_two_pair low high =
-  List.rev ((get_higher_two_pair_help1 (high + 1) [])@(get_higher_two_pair_help2 (low + 1) high []))
+  (get_higher_two_pair_help1 (high + 1) [])@(get_higher_two_pair_help2 (low + 1) high [])
 
 let rec get_higher_full_house_help2 low high lst =
     if low >= high then lst else
@@ -323,7 +325,7 @@ let rec get_higher_full_house_help1 high lst =
 else get_higher_full_house_help1 (high + 1) ((get_higher_full_house_help2 2 high [])@lst)
 
 let get_higher_full_house low high =
-  List.rev ((get_higher_full_house_help1 (high + 1) [])@(get_higher_full_house_help2 (low + 1) high []))
+  (get_higher_full_house_help1 (high + 1) [])@(get_higher_full_house_help2 (low + 1) high [])
 
 
 
@@ -481,7 +483,6 @@ let rec get_num hands prev_hand accum = match prev_hand with
     else get_num hands t accum
 
 let bs hands prev_hand =
-  Random.self_init ();
   let random = Random.int 100 in
   let cards = fst (List.split hands) in
   let hand_ranks = convert_phand_to_rank prev_hand in
@@ -542,16 +543,24 @@ let choose_hand3 hand all_hands prev_hands prev_hand =
                          else false
 
 
+  (* [string_of_rank r] returns the string representation of rank [r] *)
+  let string_of_rank r =
+    if r = 11 then "Jack"
+    else if r = 12 then "Queen"
+    else if r = 13 then "King"
+    else if r = 14 then "Ace"
+    else string_of_int r
+
   let string_of_pokerhand phand = match phand with
-    | FourOfAKind p -> "four " ^ GameDeck.string_of_rank p ^ "s"
-    | FullHouse (p, t) -> "full house with three " ^ GameDeck.string_of_rank p ^
-                          "s and two " ^ GameDeck.string_of_rank t ^ "s"
-    | Straight p -> "straight to " ^ GameDeck.string_of_rank p
-    | ThreeOfAKind p -> "three " ^ GameDeck.string_of_rank p ^ "s"
-    | TwoPair (p, t) -> "two " ^ GameDeck.string_of_rank p ^ "s and two "
-                        ^ GameDeck.string_of_rank t ^ "s"
-    | Pair p -> "a pair of " ^ GameDeck.string_of_rank p ^ "s"
-    | HighCard p -> "highcard of " ^ GameDeck.string_of_rank p
+    | FourOfAKind p -> "four " ^ string_of_rank p ^ "s"
+    | FullHouse (p, t) -> "full house with three " ^ string_of_rank p ^
+                          "s and two " ^ string_of_rank t ^ "s"
+    | Straight p -> "straight to " ^ string_of_rank p
+    | ThreeOfAKind p -> "three " ^ string_of_rank p ^ "s"
+    | TwoPair (p, t) -> "two " ^ string_of_rank p ^ "s and two "
+                        ^ string_of_rank t ^ "s"
+    | Pair p -> "a pair of " ^ string_of_rank p ^ "s"
+    | HighCard p -> "highcard of " ^ string_of_rank p
 
 
   (* beats returns true if [p_hand] is a higher ranked pokerhand than
@@ -698,7 +707,7 @@ let choose_hand3 hand all_hands prev_hands prev_hand =
 
   let ai_turn id h ph cards hands_called = match ph with
     | Some h2 -> choose_hand3 h cards hands_called h2
-    | None -> choose_hand3 h cards hands_called (HighCard 1)
+    | None -> failwith "asdf"
 
 (* prints the hand of each player *)
   let rec print_player_hands (hands : (pid * hand) list) = match hands with
