@@ -296,12 +296,13 @@ let rec get_higher_four n lst =
   get_higher_four (n + 1) ((FourOfAKind n)::lst)
 
 let rec get_higher_straight n lst =
-  if n > 14 then List.rev lst else
-  get_higher_straight (n + 1) ((Straight n)::lst)
+  if n > 14 then List.rev lst
+  else if n < 6 then get_higher_straight (n + 1) lst
+  else get_higher_straight (n + 1) ((Straight n)::lst)
 
 let rec get_higher_high_card n lst =
   if n > 14 then List.rev lst else
-  get_higher_high_card (n + 1) ((Straight n)::lst)
+  get_higher_high_card (n + 1) ((HighCard n)::lst)
 
 let rec get_higher_two_pair_help2 low high lst =
     if low >= high then lst else
@@ -489,12 +490,15 @@ let bs hands prev_hand =
   let num = get_num cards hand_ranks 0 in
   let dif = len - num in
   if dif = 0 then
-    if len = 1 && random > 90 then true
-    else if len = 2 && random > 80 then true
-    else if len = 3 && random > 70 then true
-    else if len = 4 && random > 50 then true
-    else if len = 5 && random > 40 then true
-    else false
+    (match prev_hand with
+      | HighCard _ -> if random > 95 then true else false
+      | Pair _ -> if random > 90 then true else false
+      | TwoPair _ -> if random > 80 then true else false
+      | ThreeOfAKind _ -> if random > 60 then true else false
+      | Straight _ -> if random > 60 then true else false
+      | FullHouse _ -> if random > 40 then true else false
+      | FourOfAKind _ -> if random > 30 then true else false
+    )
   else if dif = 1 && random > 90 then true
   else if dif = 2 && random > 85 then true
   else if dif = 3 && random > 50 then true
@@ -502,10 +506,21 @@ let bs hands prev_hand =
   else if dif = 5 && random > 20 then true
   else false
 
-let choose_hand3 hand all_hands prev_hands prev_hand =
-  let next_hand = if List.length prev_hands = 0 then choose_hand2 hand prev_hands (HighCard 2)
-  else choose_hand2 hand prev_hands prev_hand in
-  let is_bs = bs all_hands prev_hand in
+let choose_hand3 hand all_hands prev_hands prev_hand first_hand =
+  Random.self_init ();
+  let lie = Random.int 6 in
+  let new_hand = if lie > 3 then (
+    match hand with
+      | h::t -> ((GameDeck.take 1 [])@t)
+      | _ -> hand)
+  else if lie > 4 then (
+    match hand with
+      | h1::h2::t -> ((GameDeck.take 2 [])@t)
+      | _ -> hand)
+  else hand in
+  let next_hand = if List.length prev_hands = 0 then choose_hand2 new_hand prev_hands (HighCard 2)
+  else choose_hand2 new_hand prev_hands prev_hand in
+  let is_bs = if first_hand then false else bs all_hands prev_hand in
   if is_bs then BS prev_hand
   else Raise next_hand
 
@@ -700,9 +715,11 @@ let choose_hand3 hand all_hands prev_hands prev_hand =
                        human_turn h r
 
 
-  let ai_turn id h ph cards hands_called = match ph with
-    | Some h2 -> choose_hand3 h cards hands_called h2
-    | None -> choose_hand3 h cards hands_called (HighCard 1)
+  let ai_turn id h ph cards hands_called =   match ph with
+    | Some h2 -> choose_hand3 h cards hands_called h2 false
+    | None -> choose_hand3 h cards hands_called (HighCard 1) true
+
+
 
 (* prints the hand of each player *)
   let rec print_player_hands (hands : (pid * hand) list) = match hands with
