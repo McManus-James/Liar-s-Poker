@@ -302,7 +302,7 @@ let rec get_higher_straight n lst =
 
 let rec get_higher_high_card n lst =
   if n > 14 then List.rev lst else
-  get_higher_high_card (n + 1) ((Straight n)::lst)
+  get_higher_high_card (n + 1) ((HighCard n)::lst)
 
 let rec get_higher_two_pair_help2 low high lst =
     if low >= high then lst else
@@ -503,10 +503,10 @@ let bs hands prev_hand =
   else if dif = 5 && random > 20 then true
   else false
 
-let choose_hand3 hand all_hands prev_hands prev_hand =
+let choose_hand3 hand all_hands prev_hands prev_hand first_hand =
   let next_hand = if List.length prev_hands = 0 then choose_hand2 hand prev_hands (HighCard 2)
   else choose_hand2 hand prev_hands prev_hand in
-  let is_bs = bs all_hands prev_hand in
+  let is_bs = if first_hand then false else bs all_hands prev_hand in
   if is_bs then BS prev_hand
   else Raise next_hand
 
@@ -697,9 +697,11 @@ let choose_hand3 hand all_hands prev_hands prev_hand =
                        human_turn h r
 
 
-  let ai_turn id h ph cards hands_called = match ph with
-    | Some h2 -> choose_hand3 h cards hands_called h2
-    | None -> choose_hand3 h cards hands_called (HighCard 1)
+  let ai_turn id h ph cards hands_called =   match ph with
+    | Some h2 -> choose_hand3 h cards hands_called h2 false
+    | None -> choose_hand3 h cards hands_called (HighCard 1) true
+
+
 
 (* prints the hand of each player *)
   let rec print_player_hands (hands : (pid * hand) list) = match hands with
