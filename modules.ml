@@ -624,6 +624,10 @@ let choose_hand3 hand all_hands prev_hands prev_hand =
     with
       | Failure "int_of_string" -> raise InvalidRank
 
+  (* returns false if the hand is HighCard 1, the default value. *)
+  let is_first_round r = match r with
+    | HighCard 1 -> false
+    | _ -> true
 
   (* takes input from the user and parses it into a pokerhand type *)
   let rec parse_input h r =
@@ -634,7 +638,7 @@ let choose_hand3 hand all_hands prev_hands prev_hand =
     print_string ">";
     let call = trim (lowercase_ascii (read_line ())) in
     let length_call = String.length call in
-    if call = "bs" then BS (r)
+    if (call = "bs" && (is_first_round r)) then BS (r)
     else try (
     let space = index call ' ' in
     let type_of_hand = sub call 0 space in
@@ -673,9 +677,9 @@ let choose_hand3 hand all_hands prev_hands prev_hand =
         parse_input h r
       | InvalidMove ->
         print_endline ("That is not a valid move. The kinds you can call are "
-        ^"four, fh, straight, three, tp, pair, and hc. You may also call bs. Please try again.");
+        ^"four, fh, straight, three, tp, pair, and hc. You may also call bs, but not on the first turn of the round. Please try again.");
         parse_input h r
-      | InvalidRank -> print_endline ("That is not a valid rank to call. Please try again.");
+      | InvalidRank -> print_endline ("That is not a valid rank to call. The ranks may be any number 2-10, jack, queen, king, or ace, but for a straight it must be between 6 and ace. Please try again.");
                        parse_input h r
       (* | Failure "int_of_string" ->  *)
 
