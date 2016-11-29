@@ -296,8 +296,9 @@ let rec get_higher_four n lst =
   get_higher_four (n + 1) ((FourOfAKind n)::lst)
 
 let rec get_higher_straight n lst =
-  if n > 14 then List.rev lst else
-  get_higher_straight (n + 1) ((Straight n)::lst)
+  if n > 14 then List.rev lst
+  else if n < 6 then get_higher_straight (n + 1) lst
+  else get_higher_straight (n + 1) ((Straight n)::lst)
 
 let rec get_higher_high_card n lst =
   if n > 14 then List.rev lst else
