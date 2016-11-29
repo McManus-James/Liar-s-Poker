@@ -29,4 +29,3 @@ module type Deck = sig
 
 end
 
-module GameDeck

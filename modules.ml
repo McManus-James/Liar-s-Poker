@@ -509,6 +509,8 @@ let bs hands prev_hand =
 let choose_hand3 hand all_hands prev_hands prev_hand first_hand =
   Random.self_init ();
   let lie = Random.int 6 in
+  Random.self_init ();
+  let automatic_bs = Random.int 11 in
   let new_hand = if lie > 3 then (
     match hand with
       | h::t -> ((GameDeck.take 1 [])@t)
@@ -520,8 +522,14 @@ let choose_hand3 hand all_hands prev_hands prev_hand first_hand =
   else hand in
   let next_hand = if List.length prev_hands = 0 then choose_hand2 new_hand prev_hands (HighCard 2)
   else choose_hand2 new_hand prev_hands prev_hand in
+  let len = List.length (convert_phand_to_rank next_hand) in
+  let cards_present = count_one_hand (convert_phand_to_rank next_hand) (fst (List.split hand)) (0, convert_phand_to_rank next_hand) in
   let is_bs = if first_hand then false else bs all_hands prev_hand in
+  let dif = len - fst cards_present in
   if is_bs then BS prev_hand
+  else if dif >= 2 && automatic_bs > 7 then BS prev_hand
+  else if dif >= 3 && automatic_bs > 4 then BS prev_hand
+  else if dif >= 4 && automatic_bs > 3 then BS prev_hand
   else Raise next_hand
 
 
