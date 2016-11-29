@@ -445,7 +445,7 @@ let rec add_pairs hand_lists potential_cards two_lst = match two_lst with
 let rec add_high potential_cards two_lst = match two_lst with
   | [] -> potential_cards
   | h::t -> add_high ((convert_phand_to_rank (h))@potential_cards) t
-    | _ -> failwith "somethin dun fuck up"
+  (*   | _ -> failwith "somethin dun fuck up" *)
 
 
 let rec add_straights_help potential_cards straight_lst = match straight_lst with
@@ -634,7 +634,8 @@ let choose_hand3 hand all_hands prev_hands prev_hand =
     print_string ">";
     let call = trim (lowercase_ascii (read_line ())) in
     let length_call = String.length call in
-    try (
+    if call = "bs" then BS (r)
+    else try (
     let space = index call ' ' in
     let type_of_hand = sub call 0 space in
     match type_of_hand with
@@ -660,7 +661,6 @@ let choose_hand3 hand all_hands prev_hands prev_hand =
                   Raise (Pair (convert_input_rank_to_int i))
       | "hc" -> let i = sub call (space + 1) (length_call - (space + 1)) in
                 Raise (HighCard (convert_input_rank_to_int i))
-      | "bs" -> BS (r)
       | _ -> raise InvalidMove
 
     )
@@ -673,7 +673,7 @@ let choose_hand3 hand all_hands prev_hands prev_hand =
         parse_input h r
       | InvalidMove ->
         print_endline ("That is not a valid move. The kinds you can call are "
-        ^"four, fh, straight, three, tp, pair, hc, and bs. Please try again.");
+        ^"four, fh, straight, three, tp, pair, and hc. You may also call bs. Please try again.");
         parse_input h r
       | InvalidRank -> print_endline ("That is not a valid rank to call. Please try again.");
                        parse_input h r
