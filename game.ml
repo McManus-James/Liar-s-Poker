@@ -1,4 +1,4 @@
-module MyRound = Modules.GameRound
+module MyRound = Pokergame.GameRound
 
 let rec play info =
   let loser = MyRound.play_round info in
@@ -10,3 +10,4 @@ let rec play info =
 let main n =
   let state = MyRound.init_state n in
   print_endline ("Player "^(string_of_int (play state))^" wins!")
+

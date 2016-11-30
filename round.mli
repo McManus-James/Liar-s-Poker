@@ -2,7 +2,7 @@
  * hand, gets each player's move on their turn, and checks if a pokerhand exists
  * within all the cards in play the round *)
 module type Round = sig
-
+  include Poker
   (* The type of a plyer id *)
   type pid
 
@@ -19,5 +19,9 @@ module type Round = sig
 
   (* [play_round s] returns the id of the loser of round s *)
   val play_round  : state -> pid
+
+  (* [winner s] is returns the winner of the round if the round is over
+   * other wise returns None *)
+   val winner : state -> pid option
 
 end
