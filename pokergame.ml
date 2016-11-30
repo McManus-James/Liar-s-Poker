@@ -109,21 +109,31 @@ module GameRound = struct
         else update_players loser tl (accu@[(pid,num_cards-1)])
       else update_players loser tl (accu@[(pid, num_cards)])
 
+  (* returns the index of a given element in an array *)
+  let rec index_array elt a i =
+    if a.(i) = elt then i
+    else index_array elt a (i+1)
+
   let update_state l s =
     let players = update_players l s.players [] in
     let hands = deal_hands players [] (shuffle_deck (new_deck empty)) in
     let cards = split hands |> snd |> flatten in
-    let pids = fst (List.split players) in
-    if (List.mem_assoc l players = false) && (l = hd (rev pids)) then
+    let pids = fst (List.split s.players) in
+    let array_pids = Array.of_list pids in
+    let new_pids = fst (List.split players) in
+    let array_new_pids = Array.of_list new_pids in
+    let index_of_loser = index_array l array_pids 0 in
+    if (List.mem_assoc l players = false) && ((index_of_loser) = Array.length array_new_pids) then
       { s with
-        cur_player = hd pids;
+        cur_player = hd new_pids;
         players = players;
         hands = hands;
         cards = cards
       }
     else if (List.mem_assoc l players = false) then
+      let index_of_l = index_array l array_pids 0 in
       { s with
-        cur_player = l + 1;
+        cur_player = Array.get array_new_pids (index_of_loser);
         players = players;
         hands = hands;
         cards = cards
@@ -300,7 +310,7 @@ let convert_rank_to_phand hand = match hand with
     match type_of_hand with
       | "four" -> let i = String.sub call (space + 1) (length_call - (space + 1)) in
                   Raise (FourOfAKind (convert_input_rank_to_int i))
-      | "fh" -> let number_part = trim (sub call (space + 1) (length_call - (space + 1))) in
+      | ("fh" | "fullhouse") -> let number_part = trim (sub call (space + 1) (length_call - (space + 1))) in
                 let length_number_part = String.length number_part in
                 let space_number_part = index number_part ' ' in
                 let first_i = sub number_part 0 (space_number_part) in
@@ -310,15 +320,15 @@ let convert_rank_to_phand hand = match hand with
                       Raise (Straight (convert_input_rank_to_int i))
       | "three" -> let i = sub call (space + 1) (length_call - (space + 1)) in
                   Raise (ThreeOfAKind (convert_input_rank_to_int i))
-      | "tp" -> let number_part = trim (sub call (space + 1) (length_call - (space + 1))) in
+      | ("tp" | "twopair") -> let number_part = trim (sub call (space + 1) (length_call - (space + 1))) in
                 let length_number_part = String.length number_part in
                 let space_number_part = index number_part ' ' in
                 let first_i = sub number_part 0 (space_number_part) in
                 let second_i = sub number_part (space_number_part + 1) (length_number_part - (space_number_part + 1)) in
                 Raise (TwoPair (convert_input_rank_to_int first_i, convert_input_rank_to_int second_i))
-      | "pair" -> let i = sub call (space + 1) (length_call - (space + 1)) in
+      | ("pair" | "two") -> let i = sub call (space + 1) (length_call - (space + 1)) in
                   Raise (Pair (convert_input_rank_to_int i))
-      | "hc" -> let i = sub call (space + 1) (length_call - (space + 1)) in
+      | ("hc" | "highcard") -> let i = sub call (space + 1) (length_call - (space + 1)) in
                 Raise (HighCard (convert_input_rank_to_int i))
       | _ -> raise InvalidMove
 
