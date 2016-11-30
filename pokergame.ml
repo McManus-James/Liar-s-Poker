@@ -640,9 +640,12 @@ let choose_hand3 hand all_hands prev_hands prev_hand first_hand =
   else hand in
   let next_hand = if List.length prev_hands = 0 then choose_hand2 new_hand prev_hands (HighCard 2)
   else choose_hand2 new_hand prev_hands prev_hand in
+  let is_bs = if first_hand then false else
+  (match prev_hand with
+  | FourOfAKind a -> if a = 14 then true else bs all_hands prev_hand
+  | _ -> bs all_hands prev_hand) in
   let len = List.length (convert_phand_to_rank next_hand) in
   let cards_present = count_one_hand (convert_phand_to_rank next_hand) (fst (List.split hand)) (0, convert_phand_to_rank next_hand) in
-  let is_bs = if first_hand then false else bs all_hands prev_hand in
   let dif = len - fst cards_present in
   if is_bs then BS prev_hand
   else if dif >= 2 && automatic_bs > 7 then BS prev_hand
