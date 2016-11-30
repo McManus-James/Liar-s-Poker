@@ -1,5 +1,4 @@
 open OUnit2
-open Modules
 open Game
 
 let tests = []
