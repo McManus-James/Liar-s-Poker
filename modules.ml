@@ -29,7 +29,8 @@ module GameDeck = struct
 
   (* helper function taken from Recitation 3: Lists, and Testing with OUnit
    * that creates an infix operator that makes a list of all integers from i
-   * through j inclusive *)
+   * through j inclusive
+   *)
   let (--) i j =
     let rec from i j l =
       if i>j then l
@@ -51,22 +52,21 @@ module GameDeck = struct
     else if r = 14 then "Ace"
     else string_of_int r
 
-  (* [string_of_card c] formats a  *)
+  (* [string_of_card c] returns the string representation of card c, which is
+   * its [rank] followed by "of" followed by its [suit] *)
   let string_of_card (c:card) : string =
     string_of_rank (fst c) ^ " of " ^ string_of_suit (snd c)
 
-  (* print a hand. h is the hand to print. !!!!!!!!!!Do we want this as a visible interface in the
-   * deck sig???? *)
+  (* print a hand. h is the hand to print. *)
   let rec print_hand h = match h with
     | [] -> ()
     | h::t -> print_endline (string_of_card h);
               print_hand t
 
   (* helper function to instantiate a 52 card deck.
-   * [suit] is a suit, and [rank_list] is a list of
-   * all possible ranks
+   * [suit] is a suit, and [rank_list] is a list of all possible ranks 2-14
    * [accum] is an accumulator holding the deck created so far
-   * function returns all the cards for a particular suit, from 2 through Ace
+   * [deck_helper] returns all the cards for a particular suit, from 2 through Ace
    * (represented as rank 14) *)
   let rec deck_helper suit rank_list accum = match rank_list with
     | [] -> accum
@@ -79,17 +79,18 @@ module GameDeck = struct
     | h::t -> suit_helper t ((deck_helper h (2--14) [])@accum)
 
 
-  let rec new_deck (e : deck) : deck = ref (suit_helper [Hearts; Spades; Clubs; Diamonds] (!e))
+  let rec new_deck (e : deck) : deck =
+    ref (suit_helper [Hearts; Spades; Clubs; Diamonds] (!e))
 
-  (* Helper method for modifying the deck returns all but the first [n] elements of [lst]. If [lst] has fewer than
+  (* Helper method for modifying the deck. [drop n h] returns all but the first [n] elements of [lst]. If [lst] has fewer than
    * [n] elements, return the empty list. Code taken from Recitation: Lists,
    * and Testing with OUnit *)
-  let rec drop n h =
-    if n =0 then h else match h with
+  let rec drop n lst =
+    if n =0 then lst else match lst with
       | []->[]
       | x::xs -> drop (n-1) xs
 
-  (* returns the first [n] elements of [lst]. If [lst] has fewer than [n] elements, return all of them.
+  (* Returns the first [n] elements of [lst]. If [lst] has fewer than [n] elements, return all of them.
    * Code taken from Recitation: Lists, and Testing with OUnit *)
   let rec take n l =
     if n = 0 then [] else match l with
@@ -188,6 +189,9 @@ module GameRound = struct
       cards = cards
     }
 
+  (* [index_of x lst i] returns the index [i] of element [x] in list [lst]. If
+   * [x] is not in [lst], this function raises Failure with the error message
+   * "Not Found" *)
   let rec index_of x lst i =
     match lst with
     | [] -> failwith "Not Found"
@@ -238,13 +242,13 @@ module GameRound = struct
     | HighCard p -> [p]
 
 
-let convert_rank_to_phand hand = match hand with
-  | a::[] -> HighCard a
-  | a::b::[] -> Pair a
-  | a::b::c::[] -> ThreeOfAKind a
-  | a::b::c::d::[] -> if a = c then FourOfAKind a else TwoPair (a, c)
-  | a::b::c::d::e::[] -> if a = b then FullHouse (a, d) else Straight e
-  | _ -> raise InvalidMove
+  let convert_rank_to_phand hand = match hand with
+    | a::[] -> HighCard a
+    | a::b::[] -> Pair a
+    | a::b::c::[] -> ThreeOfAKind a
+    | a::b::c::d::[] -> if a = c then FourOfAKind a else TwoPair (a, c)
+    | a::b::c::d::e::[] -> if a = b then FullHouse (a, d) else Straight e
+    | _ -> raise InvalidMove
 
   (* returns true if every card rank in [called_ranks] is in [rank_lst]. Returns
    * false otherwise *)
@@ -326,7 +330,6 @@ let convert_rank_to_phand hand = match hand with
    * between 6 and 14 but because a straight must have 5 cards in it so the
    * lowest possible stairght is 2, 3, 4, 5, 6 and the highest is 10, Jack,
    * Queen, King, Ace *)
-
   let valid_straight p =
     if (p < 6 || p > 14) then false
     else true

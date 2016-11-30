@@ -248,11 +248,11 @@ let convert_rank_to_phand hand = match hand with
       | HighCard p, HighCard t -> p > t
       | HighCard _, _ -> false
 
-  (* returns true if [p] is a valid rank for a straight; ie [p] must be
-   * between 6 and 14 but because a straight must have 5 cards in it so the
+  (* [valid_straight p] returns true if [p] is a valid rank for a straight, and
+   * returns false if [p] is not a valid rank for a straight. To be valid, [p]
+   * must be between 6 and 14 because a straight must have 5 cards in it so the
    * lowest possible stairght is 2, 3, 4, 5, 6 and the highest is 10, Jack,
    * Queen, King, Ace *)
-
   let valid_straight p =
     if (p < 6 || p > 14) then false
     else true
@@ -270,6 +270,9 @@ let convert_rank_to_phand hand = match hand with
                             else beats p_hand prev_hand
       | _ -> beats p_hand prev_hand
 
+  (* [print_prev_call r] prints the previous hand called, but only if it is not
+   * the first turn of the round, in which case there is no previous hand
+   * called *)
   let print_prev_call r = match r with
     | HighCard 1 -> ()
     | _ -> print_endline ("And this is the previous hand called: " ^ string_of_pokerhand r)
@@ -313,8 +316,8 @@ let convert_rank_to_phand hand = match hand with
     print_string ">";
     let call = trim (lowercase_ascii (read_line ())) in
     let length_call = String.length call in
-    (* if (String.contains call ' ' = false) then interp_one_word_command call h r *)
-    if (call = "bs" && (not_first_round r = true)) then BS (r)
+    if (String.contains call ' ' = false) then interp_one_word_command call h r
+    (* if (call = "bs" && (not_first_round r = true)) then BS (r) *)
     (* else if (call = "bs") then raise InvalidBS *)
     else try (
     let space = index call ' ' in
@@ -360,6 +363,13 @@ let convert_rank_to_phand hand = match hand with
                        parse_input h r
       | InvalidBS -> print_endline "You may not call BS on the first round. Please enter a valid pokerhand.";
                      parse_input h r
+
+  and interp_one_word_command c h r = match c with
+    | "bs" -> if not_first_round r = true then BS (r)
+              else let () = print_endline "You may not call BS on the first round. Please enter a valid pokerhand." in
+                   parse_input h r
+    | _ -> print_endline "That is not a valid hand type. Please try again.";
+           parse_input h r
 
   let rec human_turn (h: hand) (r : pokerhand option) : move =
     match r with
@@ -483,9 +493,15 @@ let get_higher_hands hand = match hand with
   | FourOfAKind h -> get_higher_four (h + 1) []
 
 
-type hand_lists = {high : pokerhand list; pair : pokerhand list;
-two_pair : pokerhand list; three : pokerhand list; straight : pokerhand list;
-full_house : pokerhand list; four : pokerhand list}
+type hand_lists = {
+  high : pokerhand list;
+  pair : pokerhand list;
+  two_pair : pokerhand list;
+  three : pokerhand list;
+  straight : pokerhand list;
+  full_house : pokerhand list;
+  four : pokerhand list
+  }
 
 let rec split_pokerhand_list  prev_hands hand_lists = match prev_hands with
   | [] -> hand_lists
