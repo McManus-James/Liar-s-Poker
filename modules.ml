@@ -56,8 +56,7 @@ module GameDeck = struct
   let string_of_card (c:card) : string =
     string_of_rank (fst c) ^ " of " ^ string_of_suit (snd c)
 
-  (* print a hand. h is the hand to print. !!!!!!!!!!Do we want this as a visible interface in the
-   * deck sig???? *)
+  (* print a hand. h is the hand to print. *)
   let rec print_hand h = match h with
     | [] -> ()
     | h::t -> print_endline (string_of_card h);
@@ -446,10 +445,6 @@ let convert_rank_to_phand hand = match hand with
       | InvalidMove -> print_endline ("That hand is not a higher call than the previous hand. "
                        ^"Please try again.");
                        human_turn h r
-
-
-
-
 
 
 (* prints the hand of each player *)
