@@ -113,12 +113,28 @@ module GameRound = struct
     let players = update_players l s.players [] in
     let hands = deal_hands players [] (shuffle_deck (new_deck empty)) in
     let cards = split hands |> snd |> flatten in
-    { s with
-      cur_player = l;
-      players = players;
-      hands = hands;
-      cards = cards
-    }
+    let pids = fst (List.split players) in
+    if (List.mem_assoc l players = false) && (l = hd (rev pids)) then
+      { s with
+        cur_player = hd pids;
+        players = players;
+        hands = hands;
+        cards = cards
+      }
+    else if (List.mem_assoc l players = false) then
+      { s with
+        cur_player = l + 1;
+        players = players;
+        hands = hands;
+        cards = cards
+      }
+    else
+       { s with
+        cur_player = l;
+        players = players;
+        hands = hands;
+        cards = cards
+      }
 
 
   (* takes a pokerhand [phand] and converts it into a rank list of the ranks of
