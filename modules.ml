@@ -120,6 +120,7 @@ end
 
 exception InvalidMove
 exception InvalidRank
+exception InvalidBS
 
 module type Round = sig
   type pid
@@ -633,14 +634,22 @@ let choose_hand3 hand all_hands prev_hands prev_hand first_hand =
     | ("king" | "kings") -> 13
     | ("queen" | "queens") -> 12
     | ("jack" | "jacks") -> 11
-    | _ -> try (let i = (int_of_string rank) in
-           if (i > 1) && (i < 15) then i
-           else raise InvalidRank)
+    | ("10s" | "10") -> 10
+    | _ -> try (
+            if (String.length rank > 1) then
+              let number_part = sub rank 0 1 in
+              let i = (int_of_string number_part) in
+              if (i > 1) && (i < 15) then i
+              else raise InvalidRank
+            else
+              let i = (int_of_string rank) in
+              if (i > 1) && (i < 15) then i
+              else raise InvalidRank)
     with
       | Failure "int_of_string" -> raise InvalidRank
 
   (* returns false if the hand is HighCard 1, the default value. *)
-  let is_first_round r = match r with
+  let is_not_first_round r = match r with
     | HighCard 1 -> false
     | _ -> true
 
@@ -653,7 +662,10 @@ let choose_hand3 hand all_hands prev_hands prev_hand first_hand =
     print_string ">";
     let call = trim (lowercase_ascii (read_line ())) in
     let length_call = String.length call in
-    if (call = "bs" && (is_first_round r)) then BS (r)
+    if (call = "bs" && (is_not_first_round r)) then BS (r)
+ (*    else if (call = "bs" && (is_not_first_round r)) then
+      print_endline ("You may not call BS on the first turn of the round. Please call a poker hand.");
+      parse_input h r *)
     else try (
     let space = index call ' ' in
     let type_of_hand = sub call 0 space in
@@ -663,22 +675,22 @@ let choose_hand3 hand all_hands prev_hands prev_hand first_hand =
       | "fh" -> let number_part = trim (sub call (space + 1) (length_call - (space + 1))) in
                 let length_number_part = String.length number_part in
                 let space_number_part = index number_part ' ' in
-                let first_i = sub number_part 0 (space_number_part) in
-                let second_i = sub number_part (space_number_part + 1) (length_number_part - (space_number_part + 1)) in
+                let first_i = trim (sub number_part 0 (space_number_part)) in
+                let second_i = trim (sub number_part (space_number_part + 1) (length_number_part - (space_number_part + 1))) in
                 Raise (FullHouse (convert_input_rank_to_int first_i, convert_input_rank_to_int second_i))
-      | "straight" -> let i = sub call (space + 1) (length_call - (space + 1)) in
+      | "straight" -> let i = trim (sub call (space + 1) (length_call - (space + 1))) in
                       Raise (Straight (convert_input_rank_to_int i))
-      | "three" -> let i = sub call (space + 1) (length_call - (space + 1)) in
+      | "three" -> let i = trim (sub call (space + 1) (length_call - (space + 1))) in
                   Raise (ThreeOfAKind (convert_input_rank_to_int i))
       | "tp" -> let number_part = trim (sub call (space + 1) (length_call - (space + 1))) in
                 let length_number_part = String.length number_part in
                 let space_number_part = index number_part ' ' in
-                let first_i = sub number_part 0 (space_number_part) in
-                let second_i = sub number_part (space_number_part + 1) (length_number_part - (space_number_part + 1)) in
+                let first_i = trim (sub number_part 0 (space_number_part)) in
+                let second_i = trim (sub number_part (space_number_part + 1) (length_number_part - (space_number_part + 1))) in
                 Raise (TwoPair (convert_input_rank_to_int first_i, convert_input_rank_to_int second_i))
-      | "pair" -> let i = sub call (space + 1) (length_call - (space + 1)) in
+      | "pair" -> let i = trim (sub call (space + 1) (length_call - (space + 1))) in
                   Raise (Pair (convert_input_rank_to_int i))
-      | "hc" -> let i = sub call (space + 1) (length_call - (space + 1)) in
+      | "hc" -> let i = trim (sub call (space + 1) (length_call - (space + 1))) in
                 Raise (HighCard (convert_input_rank_to_int i))
       | _ -> raise InvalidMove
 
@@ -696,7 +708,6 @@ let choose_hand3 hand all_hands prev_hands prev_hand first_hand =
         parse_input h r
       | InvalidRank -> print_endline ("That is not a valid rank to call. The ranks may be any number 2-10, jack, queen, king, or ace, but for a straight it must be between 6 and ace. Please try again.");
                        parse_input h r
-      (* | Failure "int_of_string" ->  *)
 
   let rec human_turn (h: hand) (r : pokerhand option) : move =
     match r with
