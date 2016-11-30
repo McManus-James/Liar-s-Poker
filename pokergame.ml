@@ -4,6 +4,7 @@ open Pervasives
 
 exception InvalidMove
 exception InvalidRank
+exception InvalidBS
 
 module type Poker = sig
   include Data.Cards
@@ -293,6 +294,15 @@ let convert_rank_to_phand hand = match hand with
     with
       | Failure "int_of_string" -> raise InvalidRank
 
+  let not_first_round r = match r with
+    | HighCard 1 -> false
+    | _ -> true
+(*
+  let interp_one_word_command c h r = match c with
+    | "bs" -> if not_first_round r = true then BS (r)
+              else print_endline "You may not call BS on the first round. Please enter a valid pokerhand.";
+                   parse_input h r
+    | _ -> Raise (HighCard 1) *)
 
   (* takes input from the user and parses it into a pokerhand type *)
   let rec parse_input h r =
@@ -303,7 +313,9 @@ let convert_rank_to_phand hand = match hand with
     print_string ">";
     let call = trim (lowercase_ascii (read_line ())) in
     let length_call = String.length call in
-    if call = "bs" then BS (r)
+    (* if (String.contains call ' ' = false) then interp_one_word_command call h r *)
+    if (call = "bs" && (not_first_round r = true)) then BS (r)
+    (* else if (call = "bs") then raise InvalidBS *)
     else try (
     let space = index call ' ' in
     let type_of_hand = sub call 0 space in
@@ -346,6 +358,8 @@ let convert_rank_to_phand hand = match hand with
         parse_input h r
       | InvalidRank -> print_endline ("That is not a valid rank to call. Please try again.");
                        parse_input h r
+      | InvalidBS -> print_endline "You may not call BS on the first round. Please enter a valid pokerhand.";
+                     parse_input h r
 
   let rec human_turn (h: hand) (r : pokerhand option) : move =
     match r with
