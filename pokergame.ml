@@ -243,9 +243,11 @@ let convert_rank_to_phand hand = match hand with
     else int_of_rank (List.hd rank)
 
   let parse_double_rank ranks =
+    print_endline "ranks";
+    List.iter print_endline ranks;
     if List.length ranks <> 2 then
       raise InvalidMove
-    else (int_of_rank (List.hd ranks), int_of_rank (List.nth ranks 2))
+    else (int_of_rank (List.hd ranks), int_of_rank (List.nth ranks 1))
 
    let parse_straight_rank rank =
     if List.length rank <> 1 then
@@ -256,6 +258,8 @@ let convert_rank_to_phand hand = match hand with
       else r
 
   let parse_raised raised =
+    print_endline "raised";
+    List.iter print_endline raised;
     let hand_type = List.hd raised in
     let hand_rank = List.tl raised in
     match hand_type with
@@ -281,6 +285,7 @@ let convert_rank_to_phand hand = match hand with
   let parse_move move ph =
     let r = Str.regexp "[^a-zA-Z0-9]+" in
     let words =  handle_acronyms move |> Str.split r in
+    print_endline "words";
     List.iter print_endline words;
     let num_words = List.length words in
     if num_words = 0 then raise InvalidMove
