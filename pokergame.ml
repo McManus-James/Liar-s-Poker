@@ -220,10 +220,12 @@ let convert_rank_to_phand hand = match hand with
     | _, Pair _ -> -1
     | HighCard x, HighCard y -> compare x y
 
-  (* returns true if [p] is a valid rank for a straight; ie [p] must be
-   * between 6 and 14 but because a straight must have 5 cards in it so the
+  (* [valid_straight p] returns true if [p] is a valid rank for a straight, and
+   * returns false if [p] is not a valid rank for a straight. To be valid, [p]
+   * must be between 6 and 14 because a straight must have 5 cards in it so the
    * lowest possible stairght is 2, 3, 4, 5, 6 and the highest is 10, Jack,
    * Queen, King, Ace *)
+<<<<<<< HEAD
 
 
   let int_of_rank rank =
@@ -449,9 +451,15 @@ let get_higher_hands hand = match hand with
   | FourOfAKind h -> get_higher_four (h + 1) []
 
 
-type hand_lists = {high : pokerhand list; pair : pokerhand list;
-two_pair : pokerhand list; three : pokerhand list; straight : pokerhand list;
-full_house : pokerhand list; four : pokerhand list}
+type hand_lists = {
+  high : pokerhand list;
+  pair : pokerhand list;
+  two_pair : pokerhand list;
+  three : pokerhand list;
+  straight : pokerhand list;
+  full_house : pokerhand list;
+  four : pokerhand list
+  }
 
 let rec split_pokerhand_list  prev_hands hand_lists = match prev_hands with
   | [] -> hand_lists
