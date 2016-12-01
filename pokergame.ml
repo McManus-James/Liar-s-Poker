@@ -65,7 +65,6 @@ module GameRound = struct
     if n = 0 then players
     else init_players (n - 1) ((n,4)::players)
 
-  let deck = shuffle_deck (new_deck empty)
   (* [deal_hands] is an association list mapping pid's to the number
    * of cards they should receive  *)
   let rec deal_hands players accum d =
@@ -75,7 +74,7 @@ module GameRound = struct
 
   let init_state n =
     let players = init_players n [] in
-    let hands = List.map (fun (p,n) -> (p, deal n deck)) players in
+    let hands = deal_hands players [] (shuffle_deck (new_deck empty)) in
     let cards = List.split hands |> snd |> List.flatten in
     { players = players;
       cur_player = 1;
@@ -115,7 +114,7 @@ module GameRound = struct
         next_player l s.players
       else l
     in
-    let hands = List.map (fun (p,n) -> (p, deal n deck)) players in
+    let hands = deal_hands players [] (shuffle_deck (new_deck empty)) in
     let cards = List.split hands |> snd |> List.flatten in
     { s with
       cur_player = next;
@@ -220,21 +219,20 @@ let convert_rank_to_phand hand = match hand with
     | _, Pair _ -> -1
     | HighCard x, HighCard y -> compare x y
 
-  (* [valid_straight p] returns true if [p] is a valid rank for a straight, and
-   * returns false if [p] is not a valid rank for a straight. To be valid, [p]
-   * must be between 6 and 14 because a straight must have 5 cards in it so the
-   * lowest possible stairght is 2, 3, 4, 5, 6 and the highest is 10, Jack,
-   * Queen, King, Ace *)
-
   let int_of_rank rank =
     match rank with
     | ("ace" | "aces") -> 14
     | ("king" | "kings") -> 13
     | ("queen" | "queens") -> 12
     | ("jack" | "jacks") -> 11
+    | ("10s" | "10") -> 10
     | _ ->
         try (
-          let i = (int_of_string rank) in
+          let i =
+            if String.length rank = 2 && String.get rank 1 = 's' then
+              (int_of_string (String.sub rank 0 1))
+            else (int_of_string rank)
+          in
           if (i > 1) && (i < 15) then i
           else raise InvalidMove ) with
         | Failure _ -> raise InvalidMove
@@ -283,6 +281,7 @@ let convert_rank_to_phand hand = match hand with
   let parse_move move ph =
     let r = Str.regexp "[^a-zA-Z0-9]+" in
     let words =  handle_acronyms move |> Str.split r in
+    List.iter print_endline words;
     let num_words = List.length words in
     if num_words = 0 then raise InvalidMove
     else
@@ -297,8 +296,8 @@ let convert_rank_to_phand hand = match hand with
       else raise InvalidMove
 
   let print_valid_moves ()=
-    (print_endline ("Valid moves consist of calling BS or calling Raise "
-                   ^"followed by a valid pokerhand that is higher than the "
+    print_endline ("\nValid moves consist of calling BS or calling RAISE "
+                   ^"followed by a valid pokerhand \nthat is higher than the "
                    ^"previously raised pokerhand. \nValid pokerhands include:");
     print_endline ("FOUR OF A KIND (four) followed by the rank. \nEx: four 4");
     print_endline ("FULL HOUSE (fh) followed by the rank of the three of a kind"
@@ -310,8 +309,12 @@ let convert_rank_to_phand hand = match hand with
                    ^"then the rank of the second pair");
     print_endline ("PAIR followed by the rank");
     print_endline ("HIGH CARD (hc) followed by the rank");
-    print_endline ("Valid ranks include the numbers 2-14, jack, queen, king"
-                   ^" and ace\n");)
+    print_endline ("Valid ranks include the numbers 2-14(s), jack(s), queen(s),"
+                  ^" king(s) and ace(s)");
+    print_endline ("Valid ranks for a STRAIGHT do not include the numbers"
+                  ^" 2-5, because\nthe lowest possible straight is:"
+                  ^" 2,3,4,5,6\n");
+    ()
 
  let rec human_turn h (ph:pokerhand option) =
     print_endline ("Player 1, your turn! Here is your hand: ");
@@ -689,7 +692,7 @@ let choose_hand3 hand all_hands prev_hands prev_hand first_hand =
     ()
 
   let rec play_round s =
-    print_state s;
+    (* print_state s; *)
     let cur_hand = List.assoc s.cur_player s.hands in
     let move =
       if s.cur_player = 1 then
