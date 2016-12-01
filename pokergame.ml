@@ -314,14 +314,18 @@ let convert_rank_to_phand hand = match hand with
                    ^" and ace\n");)
 
  let rec human_turn h (ph:pokerhand option) =
+    print_endline ("Player 1, your turn! Here is your hand: ");
+    print_hand h;
     let prev =
       match ph with
       |None -> HighCard 1
       |Some p -> p
     in
-    print_endline ("Player 1, your turn! Here is your hand: ");
-    print_hand h;
-    print_endline ("The previous call was: "^(string_of_pokerhand prev));
+    let () =
+      if ph <> None then
+        (print_endline ("The previous call was: "^(string_of_pokerhand prev));)
+      else ()
+   in
     print_endline "What is your move? (Type \"help\" to display valid moves)";
     print_string "> ";
     let move = read_line ()
@@ -331,7 +335,7 @@ let convert_rank_to_phand hand = match hand with
     if move = "help" then
       ( print_valid_moves ();
       human_turn h ph )
-    else if move = "bs" then raise InvalidBS
+    else if ph = None && move = "bs" then raise InvalidBS
     else
       try (parse_move move prev) with
       | InvalidMove ->
@@ -656,11 +660,44 @@ let choose_hand3 hand all_hands prev_hands prev_hand first_hand =
                         print_endline "";
                         print_player_hands t
 
+  let print_numcards (p,n) =
+    print_endline ("Player "^(string_of_int p)^" has "^(string_of_int n)
+                  ^" cards left");
+    ()
+
+  let print_pokerhand ph =
+    print_endline (string_of_pokerhand ph);
+    ()
+
+  let print_raised ph =
+    match ph with
+    | None -> print_endline "NONE"; ()
+    | Some p -> print_pokerhand p; ()
+
+  let print_state s =
+    List.iter print_numcards s.players;
+    print_endline
+      ("The current player is Player "^(string_of_int s.cur_player));
+    print_endline
+      ("The previous player was Player "^(string_of_int s.prev_player));
+    print_endline "The previous hand's called are: ";
+    List.iter print_pokerhand s.hands_called;
+    print_raised s.raised_hand;
+    print_player_hands s.hands;
+    print_endline "All of the cards in play are:";
+    print_hand s.cards;
+    ()
+
   let rec play_round s =
+    print_state s;
     let cur_hand = List.assoc s.cur_player s.hands in
     let move =
       if s.cur_player = 1 then
-        human_turn cur_hand s.raised_hand
+        try human_turn cur_hand s.raised_hand with
+        | InvalidBS ->
+          print_endline ("You can't call BS on the first turn of a"
+                        ^" round.");
+          human_turn cur_hand s.raised_hand
       else ai_turn s.cur_player cur_hand s.raised_hand s.cards s.hands_called
     in
     let cur_p = "Player "^(string_of_int s.cur_player) in
