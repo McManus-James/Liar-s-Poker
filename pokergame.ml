@@ -225,8 +225,6 @@ let convert_rank_to_phand hand = match hand with
    * must be between 6 and 14 because a straight must have 5 cards in it so the
    * lowest possible stairght is 2, 3, 4, 5, 6 and the highest is 10, Jack,
    * Queen, King, Ace *)
-<<<<<<< HEAD
-
 
   let int_of_rank rank =
     match rank with
