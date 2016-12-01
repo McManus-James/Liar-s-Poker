@@ -1,5 +1,3 @@
-exception InvalidMove
-
 module type Poker = sig
   include Data.Cards
   type pid
@@ -26,8 +24,6 @@ module LiarsPoker = struct
     | Pair of int
     | HighCard of int
 
-exception InvalidRaise of pokerhand
-
   type move =
     | BS of pokerhand (* The hand which BS was called on *)
     | Raise of pokerhand (* The hand that was Raised *)
@@ -47,12 +43,16 @@ module GameRound = struct
   open Data.GameDeck
   include LiarsPoker
 
+  exception InvalidMove
+  exception InvalidRaise of pokerhand
+  exception InvalidBS
+
   type state = {
     players : (pid * int) list; (* association list mapping the pid to the number of cards that player has *)
     cur_player : pid; (* the pid of the player who's turn it currently is *)
     prev_player : pid; (* the previous player who made a turn. Stored for easy access if BS is called and the hand they called is not in the collective_cards *)
     hands_called : pokerhand list; (* list of pokerhands called so far in the round *)
-    raised_hand : pokerhand; (* previous move called in round *)
+    raised_hand : pokerhand option; (* previous move called in round *)
     hands : (pid * hand) list; (* association list mapping pids to their respective hands *)
     cards : hand (* list of all the cards in play; giant list of everyone's hands *)
   }
@@ -82,7 +82,7 @@ module GameRound = struct
       prev_player = 0;
       hands_called = [];
       hands = hands;
-      raised_hand = HighCard 1;
+      raised_hand = None;
       cards = cards
     }
 
@@ -123,7 +123,6 @@ module GameRound = struct
       hands = hands;
       cards = cards
     }
-
 
   (* takes a pokerhand [phand] and converts it into a rank list of the ranks of
    * the cards in the hand that's called for checking purposes.
@@ -181,7 +180,8 @@ let convert_rank_to_phand hand = match hand with
                          else false
 
 
-  let string_of_pokerhand phand = match phand with
+  let string_of_pokerhand phand =
+    match phand with
     | FourOfAKind p -> "four " ^ string_of_rank p ^ "s"
     | FullHouse (p, t) -> "full house with three " ^ string_of_rank p ^
                           "s and two " ^ string_of_rank t ^ "s"
@@ -224,6 +224,7 @@ let convert_rank_to_phand hand = match hand with
    * between 6 and 14 but because a straight must have 5 cards in it so the
    * lowest possible stairght is 2, 3, 4, 5, 6 and the highest is 10, Jack,
    * Queen, King, Ace *)
+
 
   let int_of_rank rank =
     match rank with
@@ -295,10 +296,10 @@ let convert_rank_to_phand hand = match hand with
         else raise (InvalidRaise raised)
       else raise InvalidMove
 
-  let print_valid_moves =
-    (print_endline ("Valid moves consist of calling BS or calling Raise followed "
-                   ^"by a valid pokerhand that is higher than the previously "
-                   ^"raised pokerhand. \nValid pokerhands include: ");
+  let print_valid_moves ()=
+    (print_endline ("Valid moves consist of calling BS or calling Raise "
+                   ^"followed by a valid pokerhand that is higher than the "
+                   ^"previously raised pokerhand. \nValid pokerhands include:");
     print_endline ("FOUR OF A KIND (four) followed by the rank. \nEx: four 4");
     print_endline ("FULL HOUSE (fh) followed by the rank of the three of a kind"
                    ^" and the rank of the pair \nEx: fh 3 aces");
@@ -310,12 +311,17 @@ let convert_rank_to_phand hand = match hand with
     print_endline ("PAIR followed by the rank");
     print_endline ("HIGH CARD (hc) followed by the rank");
     print_endline ("Valid ranks include the numbers 2-14, jack, queen, king"
-                   ^" and ace");)
+                   ^" and ace\n");)
 
- let rec human_turn h ph =
+ let rec human_turn h (ph:pokerhand option) =
+    let prev =
+      match ph with
+      |None -> HighCard 1
+      |Some p -> p
+    in
     print_endline ("Player 1, your turn! Here is your hand: ");
     print_hand h;
-    print_endline ("The previous call was: "^(string_of_pokerhand ph));
+    print_endline ("The previous call was: "^(string_of_pokerhand prev));
     print_endline "What is your move? (Type \"help\" to display valid moves)";
     print_string "> ";
     let move = read_line ()
@@ -323,19 +329,19 @@ let convert_rank_to_phand hand = match hand with
               |> String.lowercase_ascii
     in
     if move = "help" then
-      (print_valid_moves;
-            human_turn h ph)
+      ( print_valid_moves ();
+      human_turn h ph )
+    else if move = "bs" then raise InvalidBS
     else
-      try (parse_move move ph) with
-            | InvalidMove ->
-                print_endline "I'm sorry, but that is not a valid move.";
-                human_turn h ph
-            | InvalidRaise phand ->
-                print_endline ("I'm sorry, but "^(string_of_pokerhand phand)
-                              ^" is not a higher hand than the previously raised hand"
-                              ^(string_of_pokerhand ph));
-                human_turn h ph
-
+      try (parse_move move prev) with
+      | InvalidMove ->
+          print_endline "I'm sorry, but that is not a valid move.";
+          human_turn h ph
+      | InvalidRaise phand ->
+          print_endline ("I'm sorry, but "^(string_of_pokerhand phand)
+                        ^" is not a higher hand than the previously raised hand"
+                        ^":\n"^(string_of_pokerhand prev));
+          human_turn h ph
 
 (******************AI*********************)
 let rec match_one_card card hand ret_hand = match hand with
@@ -614,9 +620,12 @@ let choose_hand3 hand all_hands prev_hands prev_hand first_hand =
   else hand in
   let next_hand = if List.length prev_hands = 0 then choose_hand2 new_hand prev_hands (HighCard 2)
   else choose_hand2 new_hand prev_hands prev_hand in
+  let is_bs = if first_hand then false else
+  (match prev_hand with
+  | FourOfAKind a -> if a = 14 then true else bs all_hands prev_hand
+  | _ -> bs all_hands prev_hand) in
   let len = List.length (convert_phand_to_rank next_hand) in
   let cards_present = count_one_hand (convert_phand_to_rank next_hand) (fst (List.split hand)) (0, convert_phand_to_rank next_hand) in
-  let is_bs = if first_hand then false else bs all_hands prev_hand in
   let dif = len - fst cards_present in
   if is_bs then BS prev_hand
   else if dif >= 2 && automatic_bs > 7 then BS prev_hand
@@ -624,7 +633,8 @@ let choose_hand3 hand all_hands prev_hands prev_hand first_hand =
   else if dif >= 4 && automatic_bs > 3 then BS prev_hand
   else Raise next_hand
 
-    let ai_turn id h ph cards hands_called =   match ph with
+  let ai_turn id h ph cards hands_called =
+    match ph with
     | Some h2 -> choose_hand3 h cards hands_called h2 false
     | None -> choose_hand3 h cards hands_called (HighCard 1) true
 
@@ -632,7 +642,8 @@ let choose_hand3 hand all_hands prev_hands prev_hand first_hand =
 (********************** END AI **************************)
 
 (* prints the hand of each player *)
-  let rec print_player_hands (hands : (pid * hand) list) = match hands with
+  let rec print_player_hands (hands : (pid * hand) list) =
+    match hands with
     | [] -> ()
     | (pid, hand)::t -> print_endline ("Player " ^ (string_of_int pid) ^ "'s hand is:");
                         print_hand hand;
@@ -644,8 +655,7 @@ let choose_hand3 hand all_hands prev_hands prev_hand first_hand =
     let move =
       if s.cur_player = 1 then
         human_turn cur_hand s.raised_hand
-      else failwith "ai_turn now needs to accept a pokerhand option"
-      (* ai_turn s.cur_player cur_hand s.raised_hand s.cards s.hands_called *)
+      else ai_turn s.cur_player cur_hand s.raised_hand s.cards s.hands_called
     in
     let cur_p = "Player "^(string_of_int s.cur_player) in
     let prev_p = "Player "^(string_of_int s.prev_player) in
@@ -669,7 +679,7 @@ let choose_hand3 hand all_hands prev_hands prev_hand first_hand =
           cur_player = next_player s.cur_player s.players;
           prev_player = s.cur_player;
           hands_called = p::s.hands_called;
-          raised_hand = p;
+          raised_hand = Some p;
         }
       in
     play_round new_info
