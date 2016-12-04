@@ -10,7 +10,7 @@ let rec get_number_players i =
     (print_endline "The number of players may be at most 9. Please try again.";
     get_number_players 0)
   else num_players)
-  with Failure "int_of_string" -> print_endline ("The number of players must "^
+  with Failure _ -> print_endline ("The number of players must "^
                                   "be an integer between 2 and 9. Please try "^
                                   "again.");
                                   get_number_players 0
@@ -26,12 +26,10 @@ let rec get_difficulty i =
     (print_endline "The difficulty may be at most 3. Please try again.";
     get_difficulty 0)
   else diff)
-  with Failure "int_of_string" -> print_endline ("The difficulty must be an "^
+  with Failure _ -> print_endline ("The difficulty must be an "^
                                   "integer between 1 and 3. Please try again.");
                                   get_difficulty 0
 
-exception Invalidplayers
-exception Invaliddifficulty
 
 let () =
   print_endline ("Welcome to Liar's Poker!");
