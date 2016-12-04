@@ -695,7 +695,7 @@ let lie hand diff =
         | h::t -> (c1::t)
         | _ -> hand)
     else hand
-    in print_hand new_hand; new_hand
+    in new_hand
 
 
 let choose_hand3 hand all_hands prev_hands prev_hand first_hand diff =
@@ -765,7 +765,7 @@ let cheating_ai id ph cards =
   |None -> nh_helper (HighCard 1) cards (get_higher_hands (HighCard 1)) id
 
 let ai_turn id h ph cards ph_lst diff =
-  if (id mod 10 = 2) then cheating_ai id ph cards
+  if (id mod 10 = 3) then cheating_ai id ph cards
   else trusting_ai id h ph cards ph_lst diff
 
 
