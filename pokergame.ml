@@ -290,13 +290,14 @@ let convert_rank_to_phand hand = match hand with
   let parse_move move ph =
     let r = Str.regexp "[^a-zA-Z0-9]+" in
     let words =  handle_acronyms move |> Str.split r in
-    print_endline "words";
+    (* print_endline "words"; *)
     List.iter print_endline words;
     let num_words = List.length words in
     if num_words = 0 then raise InvalidMove
     else
       let move_type = List.hd words in
-      if num_words = 1 && move_type = "bs" then BS ph
+      if (num_words = 1 && move_type = "bs" && ph = HighCard 1) then raise InvalidBS
+      else if (num_words = 1 && move_type = "bs") then BS ph
       else if num_words > 1 && move_type = "raise" then
         let raise_type = List.tl words in
         let raised = parse_raised raise_type in
@@ -306,7 +307,7 @@ let convert_rank_to_phand hand = match hand with
       else raise InvalidMove
 
   let print_valid_moves ()=
-    print_endline ("\nValid moves consist of calling BS or calling RAISE "
+    print_endline ("\nValid moves consist of calling just BS or calling RAISE "
                    ^"followed by a valid pokerhand \nthat is higher than the "
                    ^"previously raised pokerhand. \nValid pokerhands include:");
     print_endline ("FOUR OF A KIND (four) followed by the rank. \nEx: four 4");
@@ -323,8 +324,7 @@ let convert_rank_to_phand hand = match hand with
                   ^" king(s) and ace(s)");
     print_endline ("Valid ranks for a STRAIGHT do not include the numbers"
                   ^" 2-5, because\nthe lowest possible straight is:"
-                  ^" 2,3,4,5,6\n");
-    ()
+                  ^" 2,3,4,5,6\n")
 
  let rec human_turn h (ph:pokerhand option) =
     print_endline ("Player 1, your turn! Here is your hand: ");
@@ -346,9 +346,8 @@ let convert_rank_to_phand hand = match hand with
               |> String.lowercase_ascii
     in
     if move = "help" then
-      ( print_valid_moves ();
-      human_turn h ph )
-    else if ph = None && move = "bs" then raise InvalidBS
+      (print_valid_moves ();
+      human_turn h ph)
     else
       try (parse_move move prev) with
       | InvalidMove ->
@@ -358,6 +357,10 @@ let convert_rank_to_phand hand = match hand with
           print_endline ("I'm sorry, but "^(string_of_pokerhand phand)
                         ^" is not a higher hand than the previously raised hand"
                         ^":\n"^(string_of_pokerhand prev));
+          human_turn h ph
+      | InvalidBS ->
+          print_endline ("You can't call BS on the first turn of a"
+                        ^" round.");
           human_turn h ph
 
 (******************AI*********************)
@@ -749,10 +752,10 @@ let ai_turn id ph cards =
     let cur_hand = List.assoc s.cur_player s.hands in
     let move =
       if s.cur_player = 1 then
-        try human_turn cur_hand s.raised_hand with
+        (* try human_turn cur_hand s.raised_hand with
         | InvalidBS ->
           print_endline ("You can't call BS on the first turn of a"
-                        ^" round.");
+                        ^" round."); *)
           human_turn cur_hand s.raised_hand
       else ai_turn s.cur_player s.raised_hand s.cards
     in
