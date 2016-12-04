@@ -3,7 +3,7 @@
  * within all the cards in play the round *)
 module type Round = sig
   include Poker
-  (* The type of a plyer id *)
+  (* The type of a player id *)
   type pid
 
   (* The state of the round *)

@@ -7,7 +7,7 @@ let rec get_number_players i =
       "again.");
     get_number_players 0)
   else if num_players > 9 then
-    (print_endline "The number of players must be at most 9. Please try again.";
+    (print_endline "The number of players may be at most 9. Please try again.";
     get_number_players 0)
   else num_players)
   with Failure "int_of_string" -> print_endline ("The number of players must "^
@@ -23,7 +23,7 @@ let rec get_difficulty i =
     (print_endline "The difficulty must be at least 1. Please try again.";
     get_difficulty 0)
   else if diff > 3 then
-    (print_endline "The difficulty must be at most 3. Please try again.";
+    (print_endline "The difficulty may be at most 3. Please try again.";
     get_difficulty 0)
   else diff)
   with Failure "int_of_string" -> print_endline ("The difficulty must be an "^
