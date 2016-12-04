@@ -396,40 +396,73 @@ module GameRound = struct
 
 (******************AI*********************)
 
-let rec match_one_card card hand ret_hand = match hand with
+(*[match_one_card] is none if card is not found in [cards] and Some list which
+ *is [cards] with [card] removed
+ *[cards] is potential cards in play
+ *[card] is single card from a pokerhand
+ *[ret_hand] is cards that won't contain [card]
+*)
+let rec match_one_card card cards ret_hand = match cards with
   | [] -> None
   | h::t -> if card = h then Some (ret_hand@t)
-    else let ret_hand_update = h::ret_hand in match_one_card card t ret_hand_update
+    else let ret_hand_update = h::ret_hand in
+    match_one_card card t ret_hand_update
 
-let rec count_one_hand next_hand player_hand ret = match next_hand with
+(*[count_one_hand] is tuple with number of cards in common between [next_hand]
+ *and [cards_in_play] and the hand itself
+ *[next_hand] is next potential pokerhand
+ *[cards_in_play] is potential cards in play
+*)
+let rec count_one_hand next_hand cards_in_play ret = match next_hand with
   | [] -> ret
-  | h::t -> let match_one_card_return = match_one_card h player_hand [] in (match match_one_card_return with
-    | None -> count_one_hand t player_hand ret
-    | Some l -> count_one_hand t l (fst ret + 1, snd ret))
+  | h::t -> let match_one_card_return = match_one_card h cards_in_play [] in
+    (match match_one_card_return with
+      | None -> count_one_hand t cards_in_play ret
+      | Some l -> count_one_hand t l (fst ret + 1, snd ret))
 
-let compare_hand cur_hand player_hand next_hand =
+(*[compare_hand2] returns hand with most cards in common with cards in play
+ *between cur_hand and next_hand.
+ *[cur_hand] is tuple with current pokerhand that shares most cards with
+ *cards in play and that number
+ *[cards_in_play] is list of ranks of player's hand/previously called hands
+ *[next_round] is next potential pokerhand
+*)
+let compare_hand cur_hand cards_in_play next_hand =
   let next_hand_rank = convert_phand_to_rank next_hand in
-  let next = count_one_hand (next_hand_rank) player_hand
+  let next = count_one_hand (next_hand_rank) cards_in_play
     (0, next_hand_rank) in
   (if fst next > fst cur_hand then
     (fst next, convert_rank_to_phand (snd next)) else  cur_hand)
 
-let compare_hand2 cur_hand player_hand next_hand =
-  let next_hand_rank = convert_phand_to_rank next_hand in
-  let next = count_one_hand (next_hand_rank) player_hand
-    (0, next_hand_rank) in
-  if fst next > 0 && (fst next) - (List.length next_hand_rank) = 0 then (fst next, convert_rank_to_phand (snd next))
-else cur_hand
-
-(*
-cur_hand
+(*[compare_hand2] returns hand with most cards in common with cards in play
+ *between cur_hand and next_hand. [compare_hand2] returns hand such that every
+ *card is found in the cards in play
+ *[cur_hand] is tuple with current pokerhand that shares most cards with
+ *cards in play and that number
+ *[cards_in_play] is list of ranks of player's hand/previously called hands
+ *[next_round] is next potential pokerhand
 *)
-let rec choose_hand1 cur_hand player_hand_ranks (p_hands : pokerhand list) : pokerhand =
+let compare_hand2 cur_hand cards_in_play next_hand =
+  let next_hand_rank = convert_phand_to_rank next_hand in
+  let next = count_one_hand (next_hand_rank) cards_in_play
+    (0, next_hand_rank) in
+  if fst next > 0 && (fst next) - (List.length next_hand_rank) = 0
+  then (fst next, convert_rank_to_phand (snd next))
+  else cur_hand
+
+(*[choose_hand1] is the lowest ranking pokerhand that has the most
+ *cards in common with bothe the previously called hands and the players
+ *current hand.
+ *[cur_hand] is the current hand with most cards in common
+ *[hand_ranks] is list of card-ranks in players hand/previously called hands
+ *[p_hands] is list if previously called pokerhands
+ *)
+let rec choose_hand1 cur_hand hand_ranks p_hands =
   match p_hands with
     | [] -> snd cur_hand
-    | h::t -> let x = (compare_hand2 cur_hand player_hand_ranks h) in
-      if snd x = (HighCard 2) then choose_hand1 (compare_hand cur_hand player_hand_ranks h) player_hand_ranks t
-      else choose_hand1 x player_hand_ranks t
+    | h::t -> let x = (compare_hand2 cur_hand hand_ranks h) in
+      if snd x = (HighCard 2) then choose_hand1 (compare_hand cur_hand hand_ranks h) hand_ranks t
+      else choose_hand1 x hand_ranks t
 
 
 
