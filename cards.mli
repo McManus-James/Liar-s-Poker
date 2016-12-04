@@ -4,3 +4,5 @@ module type Cards = sig
   type hand
   val print_hand : hand -> unit
 end
+
+module CardGame
