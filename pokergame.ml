@@ -13,14 +13,12 @@ module LiarsPoker = struct
 
   type pokerhand =
     | FourOfAKind of int
-    | FullHouse of (int * int) (* first int is rank of the three of
-                               a kind; second int is the rank of
-                               the pair *)
+    | FullHouse of (int * int) (* first int is rank of the three of a kind;
+                                second int is the rank of the pair *)
     | Straight of int (* the int is the high card in the straight *)
     | ThreeOfAKind of int
-    | TwoPair of (int * int) (* first int is rank of the higher
-                            pair; second int is the rank of the
-                            lower pair *)
+    | TwoPair of (int * int) (* first int is rank of one of the pairs; second
+                              int is the rank of the other pair *)
     | Pair of int
     | HighCard of int
 
@@ -65,8 +63,7 @@ module GameRound = struct
    * [players] is the association list mapping pids to
    * the numbers of cards they have *)
   let rec init_players n players d =
-    if n > 9 then init_players 9 players d
-    else if n = 0 then players
+    if n = 0 then players
     else if n = 1 then init_players (n-1) ((n,4)::players) d
     else match d with
       |1 -> init_players (n - 1) ((n,4)::players) d
@@ -208,7 +205,7 @@ module GameRound = struct
 
 
   (* [compare_phands p1 p2] is 1 if p1 is greater than p2, 0 if they are of the
-   * same rank, and -1 if p2 is greater than p1*)
+   * same rank, and -1 if p2 is greater than p1 *)
   let compare_phands p1 p2 =
     match p1,p2 with
     | FourOfAKind x, FourOfAKind y -> compare x y
@@ -330,10 +327,26 @@ module GameRound = struct
                   ^" king(s) and ace(s)");
     print_endline ("Valid ranks for a STRAIGHT do not include the numbers"
                   ^" 2-5, because\nthe lowest possible straight is:"
-                  ^" 2,3,4,5,6\n")
+                  ^" 2,3,4,5,6")
 
- let rec human_turn h (ph:pokerhand option) =
-    print_endline ("Player 1, your turn! Here is your hand: ");
+  let print_numcards (p,n) =
+    print_endline ("Player "^string_of_int (p mod 10)^" has "^(string_of_int n)
+                  ^" cards.")
+
+  let rec print_number_cards p = match p with
+    | [] -> ()
+    | (pid, n)::t -> print_numcards (pid, n);
+                     print_number_cards t
+
+  let print_total_num_cards (p : (pid * int) list) =
+    let num_cards = snd (split p) in
+    let total_num_cards = fold_left (+) 0 num_cards in
+    print_endline ("The total number of cards in play is "^
+                  string_of_int total_num_cards^".")
+
+
+ let rec human_turn h (ph:pokerhand option) (pl : (pid * int) list) =
+    print_endline ("\nPlayer 1, your turn! Here is your hand: ");
     print_hand h;
     let prev =
       match ph with
@@ -345,7 +358,9 @@ module GameRound = struct
         (print_endline ("The previous call was: "^(string_of_pokerhand prev));)
       else ()
    in
-    print_endline "What is your move? (Type \"help\" to display valid moves)";
+    print_endline ("What is your move? (Type \"help\" to display valid moves "^
+    "or \"numcards\" to display the total number of cards in play and how "^
+    "many cards each player currently has)");
     print_string "> ";
     let move = read_line ()
               |> String.trim
@@ -353,21 +368,26 @@ module GameRound = struct
     in
     if move = "help" then
       (print_valid_moves ();
-      human_turn h ph)
+      human_turn h ph pl)
+    else if move = "numcards" then
+      (print_endline "";
+      print_total_num_cards pl;
+      print_number_cards pl;
+      human_turn h ph pl)
     else
       try (parse_move move prev) with
       | InvalidMove ->
           print_endline "I'm sorry, but that is not a valid move.";
-          human_turn h ph
+          human_turn h ph pl
       | InvalidRaise phand ->
           print_endline ("I'm sorry, but "^(string_of_pokerhand phand)
                         ^" is not a higher hand than the previously raised hand"
                         ^":\n"^(string_of_pokerhand prev));
-          human_turn h ph
+          human_turn h ph pl
       | InvalidBS ->
           print_endline ("You can't call BS on the first turn of a"
                         ^" round.");
-          human_turn h ph
+          human_turn h ph pl
 
 (******************AI*********************)
 let rec match_one_card card hand ret_hand = match hand with
@@ -745,10 +765,6 @@ let ai_turn id h ph cards ph_lst diff =
                         print_hand hand;
                         print_endline "";
                         print_player_hands t
-
-  let print_numcards (p,n) =
-    print_endline ("Player "^(string_of_int p)^" has "^(string_of_int n)
-                  ^" cards left")
 
 
   let print_pokerhand ph =

@@ -36,8 +36,7 @@ module CardGame = struct
   let string_of_card (c:card) : string =
     string_of_rank (fst c) ^ " of " ^ string_of_suit (snd c)
 
-  (* print a hand. h is the hand to print. !!!!!!!!!!Do we want this as a visible interface in the
-   * deck sig???? *)
+
   let rec print_hand (h:hand) =
     match h with
     | [] -> ()
