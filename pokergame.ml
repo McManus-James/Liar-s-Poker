@@ -634,8 +634,8 @@ let rec get_num hands prev_hand accum = match prev_hand with
     else get_num hands t accum
 
 let bs hands prev_hand diff =
-  let t1 = if diff = 1 then [94;85;80;55;45;25] else [98;93;85;70;75;60;60] in
-  let t2 = if diff = 2 then [93;86;55;35;30] else [75;60;45;15;10] in
+  let t1 = if diff = 1 then [94;85;80;55;45;25] else if diff = 2 then [98;93;85;70;75;60;60] else [98;93;85;70;75;60;60] in
+  let t2 = if diff = 1 then [93;86;55;35;30] else if diff = 2 then [75;60;45;15;10] else [75;60;45;15;10] in
   Random.self_init ();
   let random = Random.int 100 in
   let cards = fst (List.split hands) in
@@ -660,20 +660,33 @@ let bs hands prev_hand diff =
   else if dif = 5 && random > List.nth t2 4 then true
   else false
 
+let lie hand diff =
+  Random.self_init ();
+  let lie = Random.int 11 in
+  if diff = 1 then hand else
+    if lie > 4 then (
+      match hand with
+        | h::t -> ((take 1 [])@t)
+        | _ -> hand)
+    else if lie > 6 then (
+      match hand with
+        | h1::h2::t -> ((take 2 [])@t)
+        | h::t -> ((take 1 [])@t)
+        | _ -> hand)
+    else if lie > 8 then (
+      match hand with
+        | h1::h2::h3::t -> ((take 3 [])@t)
+        | h1::h2::t -> ((take 2 [])@t)
+        | h::t -> ((take 1 [])@t)
+        | _ -> hand)
+
+    else hand
+
+
 let choose_hand3 hand all_hands prev_hands prev_hand first_hand diff =
   Random.self_init ();
-  let lie = Random.int 6 in
-  Random.self_init ();
   let automatic_bs = Random.int 11 in
-  let new_hand = if lie > 3 then (
-    match hand with
-      | h::t -> ((take 1 [])@t)
-      | _ -> hand)
-  else if lie > 4 then (
-    match hand with
-      | h1::h2::t -> ((take 2 [])@t)
-      | _ -> hand)
-  else hand in
+  let new_hand = lie hand diff in
   let next_hand = if List.length prev_hands = 0 then choose_hand2 new_hand prev_hands (HighCard 2)
   else choose_hand2 new_hand prev_hands prev_hand in
   let is_bs = if first_hand then false else
