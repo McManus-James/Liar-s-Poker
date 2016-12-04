@@ -40,21 +40,24 @@ module type Round  = sig
 end
 
 module GameRound = struct
+  open List
   open Data.GameDeck
   include LiarsPoker
-
   exception InvalidMove
   exception InvalidRaise of pokerhand
   exception InvalidBS
 
   type state = {
-    players : (pid * int) list; (* association list mapping the pid to the number of cards that player has *)
+    players : (pid * int) list; (* association list mapping pids to the number
+                                of cards that player has *)
     cur_player : pid; (* the pid of the player who's turn it currently is *)
-    prev_player : pid; (* the previous player who made a turn. Stored for easy access if BS is called and the hand they called is not in the collective_cards *)
-    hands_called : pokerhand list; (* list of pokerhands called so far in the round *)
+    prev_player : pid; (* the pid of the previous player who made a turn. *)
+    hands_called : pokerhand list; (* list of pokerhands called so far in the
+                                    round *)
     raised_hand : pokerhand option; (* previous move called in round *)
-    hands : (pid * hand) list; (* association list mapping pids to their respective hands *)
-    cards : hand (* list of all the cards in play; giant list of everyone's hands *)
+    hands : (pid * hand) list; (* association list mapping pids to their
+                               respective hands *)
+    cards : card list (* list of all the cards in play *)
   }
 
   (* initializes the [players] field of a round's state
@@ -80,7 +83,7 @@ module GameRound = struct
   let init_state n d =
     let players = init_players n [] d in
     let hands = deal_hands players [] (shuffle_deck (new_deck empty)) in
-    let cards = List.split hands |> snd |> List.flatten in
+    let cards = split hands |> snd |> flatten in
     { players = players;
       cur_player = 1;
       prev_player = 0;
@@ -96,10 +99,10 @@ module GameRound = struct
     | h::tl -> if h = x then i else index_of x tl (i+1)
 
   let next_player p players =
-    let pids = fst (List.split players) in
+    let pids = fst (split players) in
     let i = index_of p pids 0 in
-    if i = (List.length pids -1) then List.hd pids
-    else List.nth pids (i+1)
+    if i = (List.length pids -1) then hd pids
+    else nth pids (i+1)
 
   let rec update_players loser players accu =
   match players with
@@ -112,15 +115,16 @@ module GameRound = struct
         else update_players loser tl (accu@[(pid,num_cards-1)])
       else update_players loser tl (accu@[(pid, num_cards)])
 
+
   let update_state l s =
     let players = update_players l s.players [] in
     let next =
-      if List.length players <> List.length s.players then
+      if List.length players <> length s.players then
         next_player l s.players
       else l
     in
     let hands = deal_hands players [] (shuffle_deck (new_deck empty)) in
-    let cards = List.split hands |> snd |> List.flatten in
+    let cards = split hands |> snd |> flatten in
     { s with
       cur_player = next;
       players = players;
@@ -136,54 +140,59 @@ module GameRound = struct
   let convert_phand_to_rank phand =
     match phand with
     | FourOfAKind p -> [p; p; p; p]
-    | FullHouse (p, t) -> List.sort compare [p; p; p; t; t]
+    | FullHouse (p, t) -> sort compare [p; p; p; t; t]
     | Straight p -> [p - 4; p - 3; p - 2; p - 1; p]
     | ThreeOfAKind p -> [p; p; p]
-    | TwoPair (p, t) -> List.sort compare [p; p; t; t]
+    | TwoPair (p, t) -> sort compare [p; p; t; t]
     | Pair p -> [p; p]
     | HighCard p -> [p]
 
 
-let convert_rank_to_phand hand = match hand with
-  | a::[] -> HighCard a
-  | a::b::[] -> Pair a
-  | a::b::c::[] -> ThreeOfAKind a
-  | a::b::c::d::[] -> if a = c then FourOfAKind a else TwoPair (a, c)
-  | a::b::c::d::e::[] -> if a = b then FullHouse (a, d) else Straight e
-  | _ -> raise InvalidMove
+  let convert_rank_to_phand hand = match hand with
+    | a::[] -> HighCard a
+    | a::b::[] -> Pair a
+    | a::b::c::[] -> ThreeOfAKind a
+    | a::b::c::d::[] -> if a = c then FourOfAKind a else TwoPair (a, c)
+    | a::b::c::d::e::[] -> if a = b then FullHouse (a, d) else Straight e
+    | _ -> raise InvalidMove
 
   (* returns true if every card rank in [called_ranks] is in [rank_lst]. Returns
    * false otherwise *)
   let rec check_straight called_ranks rank_lst =
     match called_ranks with
       | [] -> true
-      | h::t -> (List.exists (fun x -> x = h) rank_lst) && check_straight t rank_lst
+      | h::t -> (exists (fun x -> x = h) rank_lst) && check_straight t rank_lst
 
   let hand_exists hands handrank =
     let ranks = (List.sort compare (fst (List.split hands))) in
     let hand_rank_lst = convert_phand_to_rank handrank in
     match handrank with
-      | HighCard p -> List.exists (fun x -> x = p) ranks
-      | Pair p -> let lst = List.filter (fun x -> x = p) ranks in
+      | HighCard p -> exists (fun x -> x = p) ranks
+      | Pair p -> let lst = filter (fun x -> x = p) ranks in
                   if (List.length lst > 1) then true
                   else false
-      | TwoPair (p, t) -> let lst = List.filter (fun x -> x = p) ranks in
-                          let lst2 = List.filter (fun x -> x = t) ranks in
-                          if (List.length lst > 1) && (List.length lst2 > 1) then true
+      | TwoPair (p, t) -> let lst = filter (fun x -> x = p) ranks in
+                          let lst2 = filter (fun x -> x = t) ranks in
+                          if (List.length lst > 1) && (List.length lst2 > 1)
+                            then true
                           else false
-      | ThreeOfAKind p -> let lst = List.filter (fun x -> x = p) ranks in
+      | ThreeOfAKind p -> let lst = filter (fun x -> x = p) ranks in
                           if (List.length lst > 2) then true
                           else false
       | Straight p -> check_straight hand_rank_lst ranks
-      | FullHouse (p, t) -> let lst = List.filter (fun x -> x = p) ranks in
-                            let lst2 = List.filter (fun x -> x = t) ranks in
-                            if (List.length lst > 2) && (List.length lst2 > 1) then true
+      | FullHouse (p, t) -> let lst = filter (fun x -> x = p) ranks in
+                            let lst2 = filter (fun x -> x = t) ranks in
+                            if (List.length lst > 2) && (List.length lst2 > 1)
+                              then true
                             else false
-      | FourOfAKind p -> let lst = List.filter (fun x -> x = p) ranks in
+      | FourOfAKind p -> let lst = filter (fun x -> x = p) ranks in
                          if (List.length lst > 3) then true
                          else false
 
 
+  (* [string_of_pokerhand phand] returns the string representation of [phand]
+   * requires: [phand] is a valid pokerhand
+   *)
   let string_of_pokerhand phand =
     match phand with
     | FourOfAKind p -> "four " ^ string_of_rank p ^ "s"
@@ -195,6 +204,7 @@ let convert_rank_to_phand hand = match hand with
                         ^ string_of_rank t ^ "s"
     | Pair p -> "a pair of " ^ string_of_rank p ^ "s"
     | HighCard p -> "highcard of " ^ string_of_rank p
+
 
   (* [compare_phands p1 p2] is 1 if p1 is greater than p2, 0 if they are of the
    * same rank, and -1 if p2 is greater than p1*)
@@ -245,37 +255,33 @@ let convert_rank_to_phand hand = match hand with
   let parse_single_rank rank =
     if List.length rank <> 1 then
       raise InvalidMove
-    else int_of_rank (List.hd rank)
+    else int_of_rank (hd rank)
 
   let parse_double_rank ranks =
-    print_endline "ranks";
-    List.iter print_endline ranks;
     if List.length ranks <> 2 then
       raise InvalidMove
-    else (int_of_rank (List.hd ranks), int_of_rank (List.nth ranks 1))
+    else (int_of_rank (hd ranks), int_of_rank (nth ranks 1))
 
    let parse_straight_rank rank =
     if List.length rank <> 1 then
       raise InvalidMove
     else
-      let r = int_of_rank (List.hd rank) in
+      let r = int_of_rank (hd rank) in
       if (r < 6 || r > 14) then raise InvalidMove
       else r
 
   let parse_raised raised =
-    print_endline "raised";
-    List.iter print_endline raised;
-    let hand_type = List.hd raised in
-    let hand_rank = List.tl raised in
+    let hand_type = hd raised in
+    let hand_rank = tl raised in
     match hand_type with
-    | "four" -> FourOfAKind (parse_single_rank hand_rank)
-    | "fh" -> FullHouse (parse_double_rank hand_rank)
-    | "straight" -> Straight (parse_straight_rank hand_rank)
-    | "three" -> ThreeOfAKind (parse_single_rank hand_rank)
-    | "tp" -> TwoPair (parse_double_rank hand_rank)
-    | "pair" -> Pair (parse_single_rank hand_rank)
-    | "hc" -> HighCard (parse_single_rank hand_rank)
-    | _ -> raise InvalidMove
+      | "four" -> FourOfAKind (parse_single_rank hand_rank)
+      | "fh" -> FullHouse (parse_double_rank hand_rank)
+      | "straight" -> Straight (parse_straight_rank hand_rank)
+      | "three" -> ThreeOfAKind (parse_single_rank hand_rank)
+      | "tp" -> TwoPair (parse_double_rank hand_rank)
+      | "pair" -> Pair (parse_single_rank hand_rank)
+      | "hc" -> HighCard (parse_single_rank hand_rank)
+      | _ -> raise InvalidMove
 
   let handle_acronyms c =
     let rep = Str.global_replace in
@@ -290,16 +296,15 @@ let convert_rank_to_phand hand = match hand with
   let parse_move move ph =
     let r = Str.regexp "[^a-zA-Z0-9]+" in
     let words =  handle_acronyms move |> Str.split r in
-    (* print_endline "words"; *)
-    List.iter print_endline words;
     let num_words = List.length words in
     if num_words = 0 then raise InvalidMove
     else
       let move_type = List.hd words in
-      if (num_words = 1 && move_type = "bs" && ph = HighCard 1) then raise InvalidBS
+      if (num_words = 1 && move_type = "bs" && ph = HighCard 1) then
+        raise InvalidBS
       else if (num_words = 1 && move_type = "bs") then BS ph
       else if num_words > 1 && move_type = "raise" then
-        let raise_type = List.tl words in
+        let raise_type = tl words in
         let raised = parse_raised raise_type in
         if compare_phands raised ph = 1 then
           Raise (parse_raised raise_type)
@@ -714,24 +719,25 @@ let ai_turn id ph cards =
   let rec print_player_hands (hands : (pid * hand) list) =
     match hands with
     | [] -> ()
-    | (pid, hand)::t -> print_endline ("Player " ^ (string_of_int (pid mod 10)) ^ "'s hand is:");
+    | (pid, hand)::t -> print_endline ("Player " ^ (string_of_int (pid mod 10))
+                        ^ "'s hand is:");
                         print_hand hand;
                         print_endline "";
                         print_player_hands t
 
   let print_numcards (p,n) =
     print_endline ("Player "^(string_of_int p)^" has "^(string_of_int n)
-                  ^" cards left");
-    ()
+                  ^" cards left")
+
 
   let print_pokerhand ph =
-    print_endline (string_of_pokerhand ph);
-    ()
+    print_endline (string_of_pokerhand ph)
+
 
   let print_raised ph =
     match ph with
-    | None -> print_endline "NONE"; ()
-    | Some p -> print_pokerhand p; ()
+    | None -> print_endline "NONE"
+    | Some p -> print_pokerhand p
 
   let print_state s =
     List.iter print_numcards s.players;
@@ -744,19 +750,13 @@ let ai_turn id ph cards =
     print_raised s.raised_hand;
     print_player_hands s.hands;
     print_endline "All of the cards in play are:";
-    print_hand s.cards;
-    ()
+    print_hand s.cards
 
   let rec play_round s =
-    (* print_state s; *)
     let cur_hand = List.assoc s.cur_player s.hands in
     let move =
       if s.cur_player = 1 then
-        (* try human_turn cur_hand s.raised_hand with
-        | InvalidBS ->
-          print_endline ("You can't call BS on the first turn of a"
-                        ^" round."); *)
-          human_turn cur_hand s.raised_hand
+        human_turn cur_hand s.raised_hand
       else ai_turn s.cur_player s.raised_hand s.cards
     in
     let cur_p = "Player "^(string_of_int (s.cur_player mod 10)) in
