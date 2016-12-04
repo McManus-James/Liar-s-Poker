@@ -389,7 +389,9 @@ module GameRound = struct
                         ^" round.");
           human_turn h ph pl
 
+
 (******************AI*********************)
+
 let rec match_one_card card hand ret_hand = match hand with
   | [] -> None
   | h::t -> if card = h then Some (ret_hand@t)
@@ -779,7 +781,7 @@ let ai_turn id h ph cards ph_lst diff =
   let rec play_round s =
     let cur_hand = List.assoc s.cur_player s.hands in
     let move =
-      if s.cur_player = 1 then human_turn cur_hand s.raised_hand
+      if s.cur_player = 1 then human_turn cur_hand s.raised_hand s.players
       else ai_turn s.cur_player (List.assoc s.cur_player s.hands) s.raised_hand s.cards s.hands_called s.difficulty
     in
     let cur_p = "Player "^(string_of_int (s.cur_player mod 10)) in
@@ -792,10 +794,12 @@ let ai_turn id h ph cards ph_lst diff =
       if (hand_exists s.cards p) then
         (print_endline ((string_of_pokerhand p)^" is here. "
                       ^cur_p^" loses this round.");
+        print_endline "******************* END OF ROUND *******************";
         s.cur_player)
       else
         (print_endline ((string_of_pokerhand p)^" is not here. "
                       ^prev_p^" loses this round.");
+        print_endline "******************* END OF ROUND *******************";
         s.prev_player)
     | Raise p -> print_endline (cur_p^" raised to "
                               ^(string_of_pokerhand p)^".");
