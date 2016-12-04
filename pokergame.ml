@@ -44,6 +44,7 @@ module GameRound = struct
   exception InvalidMove
   exception InvalidRaise of pokerhand
   exception InvalidBS
+  exception InvalidRank
 
   type state = {
     difficulty : int; (*difficulty of game. Between 1 and 3 incl. 1 = easy, 2 = medium, 3 = hard*)
@@ -247,7 +248,7 @@ module GameRound = struct
             else (int_of_string rank)
           in
           if (i > 1) && (i < 15) then i
-          else raise InvalidMove ) with
+          else raise InvalidRank) with
         | Failure _ -> raise InvalidMove
 
   let parse_single_rank rank =
@@ -346,7 +347,7 @@ module GameRound = struct
 
 
  let rec human_turn h (ph:pokerhand option) (pl : (pid * int) list) =
-    print_endline ("\nPlayer 1, your turn! Here is your hand: ");
+    print_endline ("\nPlayer 1, your turn! Here is your hand: \n");
     print_hand h;
     let prev =
       match ph with
@@ -355,11 +356,11 @@ module GameRound = struct
     in
     let () =
       if ph <> None then
-        (print_endline ("The previous call was: "^(string_of_pokerhand prev));)
+        (print_endline ("\nThe previous call was: "^(string_of_pokerhand prev));)
       else ()
    in
-    print_endline ("What is your move? (Type \"help\" to display valid moves "^
-    "or \"numcards\" to display the total number of cards in play and how "^
+    print_endline ("\nWhat is your move? (Type \"help\" to display valid moves \n"
+    ^"or \"numcards\" to display the total number of cards in play \nand how "^
     "many cards each player currently has)");
     print_string "> ";
     let move = read_line ()
@@ -388,8 +389,13 @@ module GameRound = struct
           print_endline ("You can't call BS on the first turn of a"
                         ^" round.");
           human_turn h ph pl
+      | InvalidRank -> print_endline ("I'm sorry, but that is not a valid "^
+                       "rank. Please try again.");
+                       human_turn h ph pl
+
 
 (******************AI*********************)
+
 let rec match_one_card card hand ret_hand = match hand with
   | [] -> None
   | h::t -> if card = h then Some (ret_hand@t)
@@ -812,12 +818,16 @@ let ai_turn id h ph cards ph_lst diff =
                           ^ " Let's check if the previous hand is there...\n");
       print_player_hands s.hands;
       if (hand_exists s.cards p) then
-        (print_endline ((string_of_pokerhand p)^" is here. "
+        (print_endline ("The hand "^(string_of_pokerhand p)^" is here. "
                       ^cur_p^" loses this round.");
+        print_endline ("\n*********************************** END OF ROUND "^
+                      "***********************************\n");
         s.cur_player)
       else
-        (print_endline ((string_of_pokerhand p)^" is not here. "
+        (print_endline ("The hand "^(string_of_pokerhand p)^" is not here. "
                       ^prev_p^" loses this round.");
+        print_endline ("\n*********************************** END OF ROUND "^
+                      "***********************************\n");
         s.prev_player)
     | Raise p -> print_endline (cur_p^" raised to "
                               ^(string_of_pokerhand p)^".");
@@ -833,7 +843,8 @@ let ai_turn id h ph cards ph_lst diff =
 
  let winner s =
   if List.length s.players = 1 then
-    Some (fst (List.hd s.players))
+    let winning_pid = (fst (List.hd s.players)) in
+    Some (winning_pid mod 10)
   else None
 
 end
