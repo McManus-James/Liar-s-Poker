@@ -358,12 +358,13 @@ module GameRound = struct
     in
     let () =
       if ph <> None then
-        (print_endline ("\nThe previous call was: "^(string_of_pokerhand prev));)
+        (print_endline ("\nThe previous call was: "^
+          (string_of_pokerhand prev));)
       else ()
    in
-    print_endline ("\nWhat is your move? (Type \"help\" to display valid moves \n"
-    ^"or \"numcards\" to display the total number of cards in play \nand how "^
-    "many cards each player currently has)");
+    print_endline ("\nWhat is your move? (Type \"help\" to display valid "^
+      "moves\n or \"numcards\" to display the total number of cards in play \n"^
+      "and how many cards each player currently has)");
     print_string "> ";
     let move = read_line ()
               |> String.trim
@@ -667,7 +668,7 @@ let bs hands prev_hand diff =
   else false
 
 let rec get_num l u =
-  Random.self_init;
+  Random.self_init ();
   let num = Random.int u in
   if num >= l then num else get_num l u
 

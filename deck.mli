@@ -3,6 +3,7 @@ module type Deck = sig
 
   include Cards
 
+  (* the type of a deck *)
   type deck
 
   (* [empty] is the empty deck *)
