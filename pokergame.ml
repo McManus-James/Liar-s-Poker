@@ -658,27 +658,36 @@ let bs hands prev_hand diff =
   else if dif = 5 && random > List.nth t2 4 then true
   else false
 
+let rec get_num l u =
+  Random.self_init;
+  let num = Random.int u in
+  if num >= l then num else get_num l u
+
 let lie hand diff =
   Random.self_init ();
   let lie = Random.int 11 in
+  let c1 = (get_num 2 15, Hearts) in
+  let c2 = (get_num 2 15, Hearts) in
+  let c3 = (get_num 2 15, Hearts) in
   if diff = 1 then hand else
-    if lie > 4 then (
+    let new_hand =
+    if lie > 8 then (
       match hand with
-        | h::t -> ((take 1 [])@t)
+        | h1::h2::h3::t -> (c1::c2::c3::t)
+        | h1::h2::t -> (c1::c2::t)
+        | h::t -> (c1::t)
         | _ -> hand)
     else if lie > 6 then (
       match hand with
-        | h1::h2::t -> ((take 2 [])@t)
-        | h::t -> ((take 1 [])@t)
+        | h1::h2::t -> (c1::c2::t)
+        | h::t -> (c1::t)
         | _ -> hand)
-    else if lie > 8 then (
+    else if lie > 4 then (
       match hand with
-        | h1::h2::h3::t -> ((take 3 [])@t)
-        | h1::h2::t -> ((take 2 [])@t)
-        | h::t -> ((take 1 [])@t)
+        | h::t -> (c1::t)
         | _ -> hand)
-
     else hand
+    in print_hand new_hand; new_hand
 
 
 let choose_hand3 hand all_hands prev_hands prev_hand first_hand diff =
