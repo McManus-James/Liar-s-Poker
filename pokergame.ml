@@ -792,7 +792,7 @@ let ai_turn id h ph cards ph_lst diff =
   let rec play_round s =
     let cur_hand = List.assoc s.cur_player s.hands in
     let move =
-      if s.cur_player = 1 then human_turn cur_hand s.raised_hand
+      if s.cur_player = 1 then human_turn cur_hand s.raised_hand s.players
       else ai_turn s.cur_player (List.assoc s.cur_player s.hands) s.raised_hand s.cards s.hands_called s.difficulty
     in
     let cur_p = "Player "^(string_of_int (s.cur_player mod 10)) in
