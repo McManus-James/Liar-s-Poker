@@ -46,8 +46,8 @@ module GameRound = struct
   exception InvalidBS
 
   type state = {
-    players : (pid * int) list; (* association list mapping pids to the number
-                                of cards that player has *)
+    difficulty : int; (*difficulty of game. Between 1 and 3 incl. 1 = easy, 2 = medium, 3 = hard*)
+    players : (pid * int) list; (* association list mapping the pid to the number of cards that player has *)
     cur_player : pid; (* the pid of the player who's turn it currently is *)
     prev_player : pid; (* the pid of the previous player who made a turn. *)
     hands_called : pokerhand list; (* list of pokerhands called so far in the
@@ -80,8 +80,9 @@ module GameRound = struct
   let init_state n d =
     let players = init_players n [] d in
     let hands = deal_hands players [] (shuffle_deck (new_deck empty)) in
-    let cards = split hands |> snd |> flatten in
-    { players = players;
+    let cards = List.split hands |> snd |> List.flatten in
+    { difficulty = d;
+      players = players;
       cur_player = 1;
       prev_player = 0;
       hands_called = [];
@@ -630,7 +631,9 @@ let rec get_num hands prev_hand accum = match prev_hand with
   | h::t -> if List.mem h hands then get_num hands t (accum + 1)
     else get_num hands t accum
 
-let bs hands prev_hand =
+let bs hands prev_hand diff =
+  let t1 = if diff = 1 then [94;85;80;55;45;25] else [98;93;85;70;75;60;60] in
+  let t2 = if diff = 2 then [93;86;55;35;30] else [75;60;45;15;10] in
   Random.self_init ();
   let random = Random.int 100 in
   let cards = fst (List.split hands) in
@@ -640,22 +643,22 @@ let bs hands prev_hand =
   let dif = len - num in
   if dif = 0 then
     (match prev_hand with
-      | HighCard _ -> if random > 95 then true else false
-      | Pair _ -> if random > 90 then true else false
-      | TwoPair _ -> if random > 80 then true else false
-      | ThreeOfAKind _ -> if random > 60 then true else false
-      | Straight _ -> if random > 60 then true else false
-      | FullHouse _ -> if random > 40 then true else false
-      | FourOfAKind _ -> if random > 30 then true else false
+      | HighCard _ -> if random > List.nth t1 0 then true else false
+      | Pair _ -> if random > List.nth t1 1 then true else false
+      | TwoPair _ -> if random > List.nth t1 2 then true else false
+      | ThreeOfAKind _ -> if random > List.nth t1 3 then true else false
+      | Straight _ -> if random > List.nth t1 4 then true else false
+      | FullHouse _ -> if random > List.nth t1 5 then true else false
+      | FourOfAKind _ -> if random > List.nth t1 6 then true else false
     )
-  else if dif = 1 && random > 90 then true
-  else if dif = 2 && random > 85 then true
-  else if dif = 3 && random > 50 then true
-  else if dif = 4 && random > 30 then true
-  else if dif = 5 && random > 20 then true
+  else if dif = 1 && random > List.nth t2 0 then true
+  else if dif = 2 && random > List.nth t2 1 then true
+  else if dif = 3 && random > List.nth t2 2 then true
+  else if dif = 4 && random > List.nth t2 3 then true
+  else if dif = 5 && random > List.nth t2 4 then true
   else false
 
-(*let choose_hand3 hand all_hands prev_hands prev_hand first_hand =
+let choose_hand3 hand all_hands prev_hands prev_hand first_hand diff =
   Random.self_init ();
   let lie = Random.int 6 in
   Random.self_init ();
@@ -673,8 +676,8 @@ let bs hands prev_hand =
   else choose_hand2 new_hand prev_hands prev_hand in
   let is_bs = if first_hand then false else
   (match prev_hand with
-  | FourOfAKind a -> if a = 14 then true else bs all_hands prev_hand
-  | _ -> bs all_hands prev_hand) in
+  | FourOfAKind a -> if a = 14 then true else bs all_hands prev_hand diff
+  | _ -> bs all_hands prev_hand diff) in
   let len = List.length (convert_phand_to_rank next_hand) in
   let cards_present = count_one_hand (convert_phand_to_rank next_hand) (fst (List.split hand)) (0, convert_phand_to_rank next_hand) in
   let dif = len - fst cards_present in
@@ -683,11 +686,6 @@ let bs hands prev_hand =
   else if dif >= 3 && automatic_bs > 4 then BS prev_hand
   else if dif >= 4 && automatic_bs > 3 then BS prev_hand
   else Raise next_hand
-
-  let ai_turn id h ph cards hands_called =
-    match ph with
-    | Some h2 -> choose_hand3 h cards hands_called h2 false
-    | None -> choose_hand3 h cards hands_called (HighCard 1) true*)
 
 let new_bs cards prev_hand diff =
   Random.self_init ();
@@ -724,12 +722,22 @@ match hl with
           if hand_exists cards hd then Raise hd
           else nh_helper ph cards tl p)
 
-let ai_turn id ph cards =
+let trusting_ai id h ph cards hands_called diff =
+  match ph with
+  | Some h2 -> choose_hand3 h cards hands_called h2 false diff
+  | None -> choose_hand3 h cards hands_called (HighCard 1) true diff
+
+let cheating_ai id ph cards =
   match ph with
   |Some ha ->
     if (new_bs cards ha id) then BS ha
     else nh_helper ha cards (get_higher_hands ha) id
   |None -> nh_helper (HighCard 1) cards (get_higher_hands (HighCard 1)) id
+
+let ai_turn id h ph cards ph_lst diff =
+  if (id mod 10 = 2) then cheating_ai id ph cards
+  else trusting_ai id h ph cards ph_lst diff
+
 
 
 
@@ -771,9 +779,8 @@ let ai_turn id ph cards =
   let rec play_round s =
     let cur_hand = List.assoc s.cur_player s.hands in
     let move =
-      if s.cur_player = 1 then
-        human_turn cur_hand s.raised_hand s.players
-      else ai_turn s.cur_player s.raised_hand s.cards
+      if s.cur_player = 1 then human_turn cur_hand s.raised_hand
+      else ai_turn s.cur_player (List.assoc s.cur_player s.hands) s.raised_hand s.cards s.hands_called s.difficulty
     in
     let cur_p = "Player "^(string_of_int (s.cur_player mod 10)) in
     let prev_p = "Player "^(string_of_int (s.prev_player mod 10)) in
