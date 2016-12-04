@@ -71,6 +71,7 @@ module GameRound = struct
       |2 -> init_players (n - 1) (((n+10),4)::players) d
       |_ -> init_players (n - 1) (((n+20),4)::players) d
 
+
   (* [deal_hands] is an association list mapping pid's to the number
    * of cards they should receive  *)
   let rec deal_hands players accum d =
@@ -154,6 +155,7 @@ module GameRound = struct
     | a::b::c::d::[] -> if a = c then FourOfAKind a else TwoPair (a, c)
     | a::b::c::d::e::[] -> if a = b then FullHouse (a, d) else Straight e
     | _ -> raise InvalidMove
+
 
   (* returns true if every card rank in [called_ranks] is in [rank_lst]. Returns
    * false otherwise *)
@@ -356,12 +358,13 @@ module GameRound = struct
     in
     let () =
       if ph <> None then
-        (print_endline ("\nThe previous call was: "^(string_of_pokerhand prev));)
+        (print_endline ("\nThe previous call was: "^
+          (string_of_pokerhand prev));)
       else ()
    in
-    print_endline ("\nWhat is your move? (Type \"help\" to display valid moves \n"
-    ^"or \"numcards\" to display the total number of cards in play \nand how "^
-    "many cards each player currently has)");
+    print_endline ("\nWhat is your move? (Type \"help\" to display valid "^
+      "moves\n or \"numcards\" to display the total number of cards in play \n"^
+      "and how many cards each player currently has)");
     print_string "> ";
     let move = read_line ()
               |> String.trim
@@ -698,7 +701,7 @@ let bs hands prev_hand diff =
   else false
 
 let rec get_num l u =
-  Random.self_init;
+  Random.self_init ();
   let num = Random.int u in
   if num >= l then num else get_num l u
 
@@ -824,6 +827,8 @@ let ai_turn id h ph cards ph_lst diff =
     | None -> print_endline "NONE"
     | Some p -> print_pokerhand p
 
+
+  (* [print_state s] prints all of the fields of [s] for debugging purposes *)
   let print_state s =
     List.iter print_numcards s.players;
     print_endline

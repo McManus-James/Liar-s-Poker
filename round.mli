@@ -25,3 +25,5 @@ module type Round = sig
    val winner : state -> pid option
 
 end
+
+module GameRound
