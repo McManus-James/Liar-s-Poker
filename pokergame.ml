@@ -976,7 +976,7 @@ let cheater_bs myhand cards prev_hand diff =
       match (diff/10) with
       |0 -> if random > 75 then not b else b
       |1 -> if random > 50 then not b else b
-      |_ -> if random > 25 then not b else b
+      |_ -> if random > 10 then not b else b
 
 (*[nh_helper] returns move of either (BS pokerhand) or (Raise pokerhand)
  *[prev_h] is previous pokerhand
