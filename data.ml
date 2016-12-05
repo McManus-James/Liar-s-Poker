@@ -10,7 +10,8 @@ module type Cards = sig
 
   type hand = card list
 
-  type deck
+  type deck = card list ref
+
   val empty : deck
   val print_hand : hand -> unit
   val new_deck : deck -> deck
@@ -18,8 +19,7 @@ module type Cards = sig
   val deal : int -> deck -> hand
   val string_of_rank : int -> string
   val in_play : hand list -> hand
-  val random_card : card
-  val num_cards : hand -> int
+  val string_of_card : card -> string
 end
 
 module CardGame : Cards = struct

@@ -12,7 +12,7 @@ module type Cards = sig
   type hand = card list
 
   (* The type of a deck *)
-  type deck
+  type deck = card list ref
 
   (* [empty] is the empty deck *)
   val empty : deck
@@ -38,10 +38,7 @@ module type Cards = sig
   (* [in_play hands] is the hand made up of all [hands] in play *)
   val in_play : hand list -> hand
 
-  (* [random_card] is a random card of suit Hearts *)
-  val random_card : card
-
-  (* [num_cards] is the number of cards in a hand *)
-  val num_cards : hand -> int
+  (* [string_of_card c] is a string representation of [c] *)
+  val string_of_card : card -> string
 
 end

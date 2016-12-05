@@ -2,7 +2,14 @@
  * hand, gets each player's move on their turn, and checks if a pokerhand exists
  * within all the cards in play the round *)
 module type Round = sig
-  include Poker with type pid = int
+  (* the type of a player id *)
+  type pid = int
+
+  (* the type of a pokerhand *)
+  type pokerhand
+
+  (* the type of a move *)
+  type move
 
   (* The state of the round *)
   type state
