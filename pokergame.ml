@@ -1152,7 +1152,7 @@ module GameRound (D : Data.Cards) : Round = struct
 
 (********************** END AI **************************)
 
-(* prints the hand of each player *)
+(* [print_player hands hands] prints the hand of each player *)
   let rec print_player_hands (hands : (pid * hand) list) =
     match hands with
       | [] -> ()
@@ -1163,16 +1163,22 @@ module GameRound (D : Data.Cards) : Round = struct
                           print_player_hands t
 
 
+  (* [print_pokerhand ph] prints [ph] to the terminal *)
   let print_pokerhand ph =
     print_endline (string_of_pokerhand ph)
 
 
+  (* [print_raised ph] prints pokerhand option [ph] to the terminal. It prints
+   * [ph] as a normal pokerhand if it is Some pokerhand, and prints the string
+   * "NONE" if [ph] is None *)
   let print_raised ph =
     match ph with
       | None -> print_endline "NONE"
       | Some p -> print_pokerhand p
 
 
+  (* [print_state s] prints all of the fields of [s] to the termianl for
+   * debugging purposes *)
   let print_state s =
     List.iter print_numcards s.players;
     print_endline

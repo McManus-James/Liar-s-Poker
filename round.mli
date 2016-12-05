@@ -14,7 +14,7 @@ module type Round = sig
   (* The state of the round *)
   type state
 
-  (* [init_state n] is the state of the first round of Liars Poker with [n]
+  (* [init_state n] returns the state of the first round of Liars Poker with [n]
    * players *)
   val init_state : pid -> int -> state
 
@@ -22,7 +22,8 @@ module type Round = sig
    * round [s] *)
   val update_state : pid -> state -> state
 
-  (* [play_round s] returns the id of the loser of round s *)
+  (* [play_round s] returns the pid of the loser of the round played with
+   * state [s] *)
   val play_round  : state -> pid
 
   (* [winner s] is returns the winner of the round if the round is over
