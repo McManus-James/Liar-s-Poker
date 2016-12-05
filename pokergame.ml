@@ -61,10 +61,10 @@ module GameRound = struct
     cards : card list (* list of all the cards in play *)
   }
 
-  (* initializes the [players] field of a round's state
+  (* [init_players n players d] initializes the [players] field of a state
    * [n] is the number of players to initialize
    * [players] is the association list mapping pids to the numbers of cards
-   * they have
+   * they have; the accumulator being added to each iteration
    * [d] is the difficulty level *)
   let rec init_players n players d =
     if n = 0 then players
