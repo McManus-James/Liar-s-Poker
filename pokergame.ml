@@ -63,6 +63,7 @@ module GameRound (D : Data.Cards) : Round = struct
       |2 -> init_players (n - 1) (((n+10),4)::players) d
       |_ -> init_players (n - 1) (((n+20),4)::players) d
 
+
   (* [deal_hands] deals a hand to each player and returns an association list
    * mapping pids to their hands
    * [players] is an association list mapping pids to the number of cards that
@@ -74,6 +75,7 @@ module GameRound (D : Data.Cards) : Round = struct
     match players with
       | [] -> accum
       | (p, n)::t -> deal_hands t ((p, (deal n d))::accum) d
+
 
   (* [init_state] initialized a rounds state
    * [n] is the number of players to initialize
@@ -92,6 +94,7 @@ module GameRound (D : Data.Cards) : Round = struct
       cards = cards
     }
 
+
   (* [index_of] returns the index of an element x in a list
    * [x] element searching for
    * [lst] is the list being searched through
@@ -101,6 +104,7 @@ module GameRound (D : Data.Cards) : Round = struct
     | [] -> failwith "Not Found"
     | h::tl -> if h = x then i else index_of x tl (i+1)
 
+
   (* [next_player] chooses the next player in the game to make a turn
    * [p] p is the current player
    * [players] is an association list of pid and number of cards remaining*)
@@ -109,6 +113,7 @@ module GameRound (D : Data.Cards) : Round = struct
     let i = index_of p pids 0 in
     if i = (List.length pids -1) then hd pids
     else nth pids (i+1)
+
 
   (* [update_players] updates the number of cards players have afer a round
    * [loser] is the loser of the round
@@ -124,6 +129,7 @@ module GameRound (D : Data.Cards) : Round = struct
         update_players loser tl accu)
         else update_players loser tl (accu@[(pid,num_cards-1)])
       else update_players loser tl (accu@[(pid, num_cards)])
+
 
   (* [update_state] updates a games state following a round
    * [l] is the loser of the last round
@@ -144,6 +150,7 @@ module GameRound (D : Data.Cards) : Round = struct
       cards = cards
     }
 
+
   (* takes a pokerhand [phand] and converts it into a rank list of the ranks of
    * the cards in the hand that's called for checking purposes.
    * Does not return a card list, because the suits of the cards are not
@@ -159,6 +166,7 @@ module GameRound (D : Data.Cards) : Round = struct
     | Pair p -> [p; p]
     | HighCard p -> [p]
 
+
   (* takes a rank list of the ranks of the cards in the hand that's called
    * and converts it to a pokerhand [phand] *)
   let convert_rank_to_phand hand = match hand with
@@ -168,6 +176,7 @@ module GameRound (D : Data.Cards) : Round = struct
     | a::b::c::d::[] -> if a = c then FourOfAKind a else TwoPair (a, c)
     | a::b::c::d::e::[] -> if a = b then FullHouse (a, d) else Straight e
     | _ -> raise InvalidMove
+
 
   (* returns true if every card rank in [called_ranks] is in [rank_lst]. Returns
    * false otherwise *)
@@ -275,6 +284,7 @@ module GameRound (D : Data.Cards) : Round = struct
           else raise InvalidRank) with
         | Failure _ -> raise InvalidMove
 
+
   (* [parse_single_rank rank] is the rank the user typed
    * raise invalid move if the rank is not a valid single rank *)
   let parse_single_rank rank =
@@ -282,12 +292,14 @@ module GameRound (D : Data.Cards) : Round = struct
       raise InvalidMove
     else int_of_rank (hd rank)
 
+
   (* [parse_straight_rank rank] is the two rank tuple the user typed
    * rais InvalidMove if the rank is not a valid double rank *)
   let parse_double_rank ranks =
     if List.length ranks <> 2 then
       raise InvalidMove
     else (int_of_rank (hd ranks), int_of_rank (nth ranks 1))
+
 
   (* [parse_straight_rank rank] is the rank that the user typed
    * raises InvalidMove if the rank is not with 6-14 *)
@@ -298,6 +310,7 @@ module GameRound (D : Data.Cards) : Round = struct
     let r = int_of_rank (hd rank) in
     if (r < 6 || r > 14) then raise InvalidMove
     else r
+
 
   (* [parse_raised raised] is the pokerhand type that the user raised *)
   let parse_raised raised =
@@ -313,6 +326,7 @@ module GameRound (D : Data.Cards) : Round = struct
       | "hc" -> HighCard (parse_single_rank hand_rank)
       | _ -> raise InvalidMove
 
+
   (* [handle_acronyms s] is [s] with the long versions of pokerhand types
    * replaced by their shortcuts *)
   let handle_acronyms s =
@@ -323,6 +337,7 @@ module GameRound (D : Data.Cards) : Round = struct
     |> rep (reg "three of a kind") "three"
     |> rep (reg "two pair") "tp"
     |> rep (reg "high card") "hc"
+
 
   (* [parse_move move ph] takes input from the user and parses it into a
    * pokerhand type. Raises InvalidRaise if [move] is not a higher hand than
@@ -345,6 +360,7 @@ module GameRound (D : Data.Cards) : Round = struct
         else raise (InvalidRaise raised)
       else raise InvalidMove
 
+
   let print_valid_moves ()=
     print_endline ("\nValid moves consist of calling just BS or calling RAISE "
                    ^"followed by a valid pokerhand \nthat is higher than the "
@@ -364,6 +380,7 @@ module GameRound (D : Data.Cards) : Round = struct
     print_endline ("Valid ranks for a STRAIGHT do not include the numbers"
                   ^" 2-5, because\nthe lowest possible straight is:"
                   ^" 2,3,4,5,6")
+
 
   (* [print_numcards (p,n)] prints the number of cards [n] that player [p] has
    * remaining in the game.
@@ -394,6 +411,7 @@ module GameRound (D : Data.Cards) : Round = struct
     let total_num_cards = fold_left (+) 0 num_cards in
     print_endline ("The total number of cards in play is "^
                   string_of_int total_num_cards^".")
+
 
  let rec human_turn h (ph:pokerhand option) (pl : (pid * int) list) =
     print_endline ("\nPlayer 1, your turn! Here is your hand: \n");
@@ -455,6 +473,7 @@ let rec match_one_card card cards ret_hand = match cards with
     else let ret_hand_update = h::ret_hand in
     match_one_card card t ret_hand_update
 
+
 (*[count_one_hand] is tuple with number of cards in common between [next_hand]
  *and [cards_in_play] and the hand itself
  *[next_hand] is next potential pokerhand
@@ -465,6 +484,7 @@ let rec count_one_hand next_hand cards_in_play ret = match next_hand with
     (match match_one_card_return with
       | None -> count_one_hand t cards_in_play ret
       | Some l -> count_one_hand t l (fst ret + 1, snd ret))
+
 
 (*[compare_hand2] returns hand with most cards in common with cards in play
  *between cur_hand and next_hand.
@@ -478,6 +498,7 @@ let compare_hand cur_hand cards_in_play next_hand =
     (0, next_hand_rank) in
   (if fst next > fst cur_hand then
     (fst next, convert_rank_to_phand (snd next)) else  cur_hand)
+
 
 (*[compare_hand2] returns hand with most cards in common with cards in play
  *between cur_hand and next_hand. [compare_hand2] returns hand such that every
@@ -494,6 +515,7 @@ let compare_hand2 cur_hand cards_in_play next_hand =
   then (fst next, convert_rank_to_phand (snd next))
   else cur_hand
 
+
 (*[choose_hand1] is the lowest ranking pokerhand that has the most
  *cards in common with bothe the previously called hands and the players
  *current hand.
@@ -504,8 +526,10 @@ let rec choose_hand1 cur_hand hand_ranks p_hands =
   match p_hands with
     | [] -> snd cur_hand
     | h::t -> let x = (compare_hand2 cur_hand hand_ranks h) in
-      if snd x = (HighCard 2) then choose_hand1 (compare_hand cur_hand hand_ranks h) hand_ranks t
+      if snd x = (HighCard 2) then
+        choose_hand1 (compare_hand cur_hand hand_ranks h) hand_ranks t
       else choose_hand1 x hand_ranks t
+
 
 (*[get_higher_three] is list of all ThreeOfAKind pokerhands higher ranking or
  *equal to (ThreeOfAKind n)
@@ -515,6 +539,7 @@ let rec get_higher_three n lst =
   if n > 14 then List.rev lst else
   get_higher_three (n + 1) ((ThreeOfAKind n)::lst)
 
+
 (*[get_higher_pair] is list of all Pair pokerhands higher ranking or
  *equal to (Pair n)
  *[n] is int >= 2
@@ -523,6 +548,7 @@ let rec get_higher_pair n lst =
   if n > 14 then List.rev lst else
   get_higher_pair (n + 1) ((Pair n)::lst)
 
+
 (*[get_higher_four] is list of all FourOfAKind pokerhands higher ranking or
  *equal to (FourOfAKind n)
  *[n] is int >= 2
@@ -530,6 +556,7 @@ let rec get_higher_pair n lst =
 let rec get_higher_four n lst =
   if n > 14 then List.rev lst else
   get_higher_four (n + 1) ((FourOfAKind n)::lst)
+
 
 (*[get_higher_straight] is list of all Straight pokerhands higher ranking or
  *equal to (Straight n)
@@ -540,6 +567,7 @@ let rec get_higher_straight n lst =
   else if n < 6 then get_higher_straight (n + 1) lst
   else get_higher_straight (n + 1) ((Straight n)::lst)
 
+
 (*[get_higher_four] is list of all HighCard pokerhands higher ranking or
  *equal to (HighCard n)
  *[n] is int >= 2
@@ -547,6 +575,7 @@ let rec get_higher_straight n lst =
 let rec get_higher_high_card n lst =
   if n > 14 then List.rev lst else
   get_higher_high_card (n + 1) ((HighCard n)::lst)
+
 
 (*[get_higher_two_pair_help2] is all TwoPair pokerhands with higher ranks or
  *equal to (TwoPair low high) and a highest card of rank [high]
@@ -557,6 +586,7 @@ let rec get_higher_two_pair_help2 low high lst =
     if low >= high then lst else
   get_higher_two_pair_help2 (low + 1) high ((TwoPair (low, high))::lst)
 
+
 (*[get_higher_two_pair_help1] is all TwoPair pokerhands with higher ranks
  *than (TwoPair n high) with high cards greater than [high]
  *[high] is int >= 2
@@ -565,6 +595,7 @@ let rec get_higher_two_pair_help1 high lst =
   if high > 14 then lst
   else get_higher_two_pair_help1 (high + 1)
   ((get_higher_two_pair_help2 2 high [])@lst)
+
 
 (*[get_higher_two_pair] is list of all TwoPair pokerhands higher ranking or
  *equal to (TwoPair low high)
@@ -575,6 +606,7 @@ let get_higher_two_pair low high =
   List.rev ((get_higher_two_pair_help1 (high + 1) [])@
     (get_higher_two_pair_help2 (low + 1) high []))
 
+
 (*[get_higher_full_house_help2] is all FullHouse pokerhands with higher ranks or
  *equal to (FullHouse low high) and a highest card of rank [high]
  *[low] is int >= 2
@@ -583,6 +615,7 @@ let get_higher_two_pair low high =
 let rec get_higher_full_house_help2 low high lst =
     if low >= high then lst else
   get_higher_full_house_help2 (low + 1) high ((FullHouse (low, high))::lst)
+
 
 (*[get_higher_full_house_help1] is all FullHouse pokerhands with higher ranks
  *than (FullHouse n high) with high cards greater than [high]
@@ -631,6 +664,7 @@ let get_higher_hands hand = match hand with
     (get_higher_full_house l h)@(get_higher_four 2 [])
   | FourOfAKind h -> get_higher_four (h + 1) []
 
+
 (*type representing list of pokerhands, but with each type of pokerhand as
   its own list*)
 type hand_lists = {
@@ -667,6 +701,7 @@ let rec split_pokerhand_list  prev_hands hand_lists = match prev_hands with
       {hand_lists with four = (FourOfAKind a)::hand_lists.four}
   )
 
+
 (*[remove_three] is list of pokerhands with all occurences of ThreeOfAKind n
  *removed
  *[n] is an integer
@@ -678,6 +713,7 @@ let rec remove_three n lst ret = match lst with
       then remove_three n t ret
       else remove_three n t (h::ret)
     | _ -> failwith "Should not occur")
+
 
 (*[remove_pair] is list of pokerhands with all occurences of Pair n
  *removed
@@ -691,6 +727,7 @@ let rec remove_pair n lst ret = match lst with
       else remove_pair n t (h::ret)
     | _ -> failwith "Should not occur")
 
+
 (*[remove_high] is list of pokerhands with all occurences of HighCard n
  *removed
  *[n] is an integer
@@ -703,6 +740,7 @@ let rec remove_high n lst ret = match lst with
       else remove_high n t (h::ret)
     | _ -> failwith "Should not occur")
 
+
 (*[remove_two_pair] is list of pokerhands with all occurences of TwoPair n
  *removed
  *[n] is an integer
@@ -714,6 +752,7 @@ let rec remove_two_pair n1 n2 lst ret = match lst with
       then remove_two_pair n1 n2 t ret
       else remove_two_pair n1 n2 t (h::ret)
     | _ -> failwith "Should not occur")
+
 
 (*[add_fours] is tuple with a hand_lists and potential cards with four of a
  *kinds added to potential cards, and an updated hand list.
@@ -733,6 +772,7 @@ let rec add_fours hand_lists potential_cards four_lst = match four_lst with
       ((convert_phand_to_rank (h))@potential_cards) t
     | _ -> failwith "Should not occur")
 
+
 (*[add_full_houses] is tuple with a hand_lists and potential cards with full
  *housesladded to potential cards, and an updated hand list
  *[hands_lists] is hand_lists with current pokerhands
@@ -749,6 +789,7 @@ let rec add_full_houses hand_lists potential_cards full_house_lst =
       ((convert_phand_to_rank (h))@potential_cards) t
     | _ -> failwith "Should not occur")
 
+
 (*[add_full_houses] is tuple with a hand_lists and potential cards with full
  *housesladded to potential cards, and an updated hand list
  *[hands_lists] is hand_lists with current pokerhands
@@ -762,6 +803,7 @@ let rec add_threes hand_lists potential_cards three_lst = match three_lst with
       high = remove_high a hand_lists.high []}
       ((convert_phand_to_rank (h))@potential_cards) t
     | _ -> failwith "Should not occur")
+
 
 (*[add_full_houses] is tuple with a hand_lists and potential cards with full
  *housesladded to potential cards, and an updated hand list
@@ -778,6 +820,7 @@ let rec add_two_pairs hand_lists potential_cards two_pair_lst =
       ((convert_phand_to_rank (h))@potential_cards) t
     | _ -> failwith "Should not occur")
 
+
 (*[add_full_houses] is tuple with a hand_lists and potential cards with full
  *housesladded to potential cards, and an updated hand list
  *[hands_lists] is hand_lists with current pokerhands
@@ -791,6 +834,7 @@ let rec add_pairs hand_lists potential_cards two_lst = match two_lst with
       ((convert_phand_to_rank (h))@potential_cards) t
     | _ -> failwith "Should not occur")
 
+
 (*[add_full_houses] is tuple with a hand_lists and potential cards with full
  *houses added to potential cards, and an updated hand list
  *[potential_cards] is current potential cards
@@ -798,7 +842,7 @@ let rec add_pairs hand_lists potential_cards two_lst = match two_lst with
 let rec add_high potential_cards two_lst = match two_lst with
   | [] -> potential_cards
   | h::t -> add_high ((convert_phand_to_rank (h))@potential_cards) t
-  (*   | _ -> failwith "somethin dun fuck up" *)
+
 
 (*[add_straights_help] is cards from [straight_lst] added to
  *[potential_cards] only if card is not already part of [straight_lst]
@@ -811,6 +855,7 @@ let rec add_straights_help potential_cards straight_lst =
     add_straights_help potential_cards t
     else add_straights_help (h::potential_cards) t
 
+
 (*[add_straights_help] is tuple with a hand_lists and potential cards with
  *straights added to potential cards, and an updated hand list
  *[hands_lists] is hand_lists with current pokerhands
@@ -822,6 +867,7 @@ let rec add_straights potential_cards straight_lst =
   let rank_st_lst_no_dups =
     List.sort_uniq Pervasives.compare rank_straight_lst in
   add_straights_help potential_cards rank_st_lst_no_dups
+
 
 (*[get_potential_cards] is a list of ranks of cards that an AI would consider
  *to be in play.
@@ -858,13 +904,15 @@ let choose_hand2 player_hand prev_hands prev_hand trust =
     (player_hand_ranks@prev_hand_ranks) higher_hands
   else choose_hand1 ((-1), HighCard 2) (player_hand_ranks) higher_hands
 
+
 (*[get_num] returns number of cards that are in both [prev_hand] and [hands]*)
 let rec get_num hands prev_hand accum = match prev_hand with
   | [] -> accum
   | h::t -> if List.mem h hands then get_num hands t (accum + 1)
     else get_num hands t accum
 
-(*[bs] returns true if the AI will call BS or false if it will not
+
+(**[bs] returns true if the AI will call BS or false if it will not
  *[hands] is list of all cards
  *[prev_hand] is previous pokerhand
  *[diff] is difficulty of game (between 1 and 3 incl)
@@ -913,6 +961,7 @@ let bs hands prev_hand diff =
   else if dif = 5 && random > List.nth t2 4 then true
   else false
 
+
 (*[get_rand_num] returns random number between lower bound [l] (incl) and
  *upper bout [u] (excl)*)
 let rec get_rand_num l u =
@@ -920,7 +969,8 @@ let rec get_rand_num l u =
   let num = Random.int u in
   if num >= l then num else get_rand_num l u
 
-(*[lie] returns new hand that may potentially contain new cards, as a way to
+
+(**[lie] returns new hand that may potentially contain new cards, as a way to
  *get the AI to lie about contents of hand.
  *[hand] is real hand of player
  *[diff] is difficulty of game
@@ -961,7 +1011,8 @@ let lie hand diff num_cards =
     else hand
     in new_hand
 
-(*[choose_hand3] returns move of either (BS pokerhand) or (Raise pokerhand).
+
+(**[choose_hand3] returns move of either (BS pokerhand) or (Raise pokerhand).
  *pokerhand when calling BS is previous hand, when calling Raise is next hand
  *outcome determined on following factors:
  *1. bs is called if [bs] returns true
@@ -992,6 +1043,7 @@ let choose_hand3 hand all_hands prev_hands prev_hand first_hand diff trust =
   else if dif >= 4 && automatic_bs > 2 then BS prev_hand
   else Raise next_hand
 
+
 (*[cheater_bs] returns true if the AI will call BS or false if it will not
  *[myhand] is list of the ais cards
  *[cards] is the list of cards in the game during the round
@@ -1015,6 +1067,7 @@ let cheater_bs myhand cards prev_hand diff =
       |0 -> if random > 75 then not b else b
       |1 -> if random > 50 then not b else b
       |_ -> if random > 10 then not b else b
+
 
 (*[nh_helper] returns move of either (BS pokerhand) or (Raise pokerhand)
  *[prev_h] is previous pokerhand
@@ -1056,6 +1109,7 @@ let trusting_ai h ph cards hands_called diff trust =
   | Some h2 -> choose_hand3 h cards hands_called h2 false diff trust
   | None -> choose_hand3 h cards hands_called (HighCard 1) true diff trust
 
+
 (*[cheating ai]
   cheating ai is an ai that proccesses its move with knowledge of all the cards
   currently in play (even those that are not its own)
@@ -1066,6 +1120,7 @@ let cheating_ai myhand id ph cards =
     if (cheater_bs myhand cards ha id) then BS ha
     else nh_helper ha cards (get_higher_hands ha) id
   |None -> nh_helper (HighCard 1) cards (get_higher_hands (HighCard 1)) id
+
 
 (*[ai_turn] returns move of either BS or Raise. Depending on current player,
  *a different stragety will be used to determing next hand
@@ -1103,6 +1158,7 @@ let ai_turn id h ph cards ph_lst diff =
     | None -> print_endline "NONE"
     | Some p -> print_pokerhand p
 
+
   let print_state s =
     List.iter print_numcards s.players;
     print_endline
@@ -1121,7 +1177,8 @@ let ai_turn id h ph cards ph_lst diff =
     let cur_hand = assoc s.cur_player s.hands in
     let move =
       if s.cur_player = 1 then human_turn cur_hand s.raised_hand s.players
-      else ai_turn s.cur_player cur_hand s.raised_hand s.cards s.hands_called s.difficulty
+      else (ai_turn s.cur_player cur_hand s.raised_hand s.cards s.hands_called
+           s.difficulty)
     in
     let cur_p = "Player "^(string_of_int (s.cur_player mod 10)) in
     let prev_p = "Player "^(string_of_int (s.prev_player mod 10)) in
@@ -1153,6 +1210,7 @@ let ai_turn id h ph cards ph_lst diff =
         }
       in
     play_round new_info
+
 
  let winner s =
   if List.length s.players = 1 then
