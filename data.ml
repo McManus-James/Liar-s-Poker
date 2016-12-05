@@ -10,6 +10,7 @@ module type Cards = sig
   val new_deck : deck -> deck
   val shuffle_deck: deck -> deck
   val deal : int -> deck -> hand
+  val string_of_rank : int -> string
   val in_play : hand list -> hand
 end
 
