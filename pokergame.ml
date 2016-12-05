@@ -951,7 +951,7 @@ let choose_hand3 hand all_hands prev_hands prev_hand first_hand diff =
   if is_bs then BS prev_hand
   else if dif >= 2 && automatic_bs > 7 then BS prev_hand
   else if dif >= 3 && automatic_bs > 4 then BS prev_hand
-  else if dif >= 4 && automatic_bs > 3 then BSkprev_hand
+  else if dif >= 4 && automatic_bs > 3 then BS prev_hand
   else Raise next_hand
 
 (*[cheater_bs] returns true if the AI will call BS or false if it will not
@@ -992,23 +992,23 @@ let rec nh_helper prev_h cards hl diff =
 Random.self_init ();
 let random = Random.int 100 in
 match hl with
-|[] -> BS ph
-|hd::tl -> match (p/10) with
+|[] -> BS prev_h
+|hd::tl -> match (diff/10) with
   |0-> if random > 50 then
           Raise hd
         else (
           if hand_exists cards hd then Raise hd
-          else nh_helper ph cards tl p)
+          else nh_helper prev_h cards tl diff)
   |1-> if random > 75 then
           Raise hd
         else (
           if hand_exists cards hd then Raise hd
-          else nh_helper ph cards tl p)
+          else nh_helper prev_h cards tl diff)
   |_-> if random > 95 then
           Raise hd
         else (
           if hand_exists cards hd then Raise hd
-          else nh_helper ph cards tl p)
+          else nh_helper prev_h cards tl diff)
 
 (*[trusting ai ]*)
 let trusting_ai id h ph cards hands_called diff =
