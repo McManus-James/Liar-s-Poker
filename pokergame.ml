@@ -526,13 +526,8 @@ let rec choose_hand1 cur_hand hand_ranks p_hands =
   match p_hands with
     | [] -> snd cur_hand
     | h::t -> let x = (compare_hand2 cur_hand hand_ranks h) in
-<<<<<<< HEAD
       if snd x = (HighCard 2) then
         choose_hand1 (compare_hand cur_hand hand_ranks h) hand_ranks t
-=======
-      if snd x = (HighCard 2)
-      then choose_hand1 (compare_hand cur_hand hand_ranks h) hand_ranks t
->>>>>>> 800c5c242589fbc6b9118b033e8bd71c8d311b69
       else choose_hand1 x hand_ranks t
 
 
@@ -1018,7 +1013,7 @@ let lie hand diff num_cards =
     else hand
     in new_hand
 
-<<<<<<< HEAD
+
 (*[choose_hand3] returns move of either (BS pokerhand) or (Raise pokerhand).
  *[hand] is current hand
  *[all_hands] is list of all cards in play
