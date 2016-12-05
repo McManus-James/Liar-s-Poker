@@ -361,6 +361,8 @@ module GameRound (D : Data.Cards) : Round = struct
       else raise InvalidMove
 
 
+  (* [print_valid_moves ()] prints the valid hand types and ranks that a player
+   * can call *)
   let print_valid_moves ()=
     print_endline ("\nValid moves consist of calling just BS or calling RAISE "
                    ^"followed by a valid pokerhand \nthat is higher than the "
@@ -1150,6 +1152,187 @@ module GameRound (D : Data.Cards) : Round = struct
     else trusting_ai h ph cards ph_lst diff true
 
 
+(*[get_rand_num] returns random number between lower bound [l] (incl) and
+ *upper bout [u] (excl)*)
+let rec get_rand_num l u =
+  Random.self_init ();
+  let num = Random.int u in
+  if num >= l then num else get_rand_num l u
+
+
+(**[lie] returns new hand that may potentially contain new cards, as a way to
+ *get the AI to lie about contents of hand.
+ *[hand] is real hand of player
+ *[diff] is difficulty of game
+ *[num_cards] is number of cards in play
+ *Lie returns incorrect hand based
+ *on three factors:
+ *1. Random number generated determines number of cards in hand to be replaced
+ *2. Number of cards in play total--fewer cards in play means fewer cards are
+ *   replaced
+ *3. if difficulty of game is easiest, then AI never lies*)
+let lie hand diff num_cards =
+  Random.self_init ();
+  let lie = Random.int 11 in
+  let c1 = (get_rand_num 2 15, Hearts) in
+  let c2 = (get_rand_num 2 15, Hearts) in
+  let c3 = (get_rand_num 2 15, Hearts) in
+  if diff = 1 then hand else
+    let new_hand =
+    if num_cards < 10 && lie > 7 then (
+      match hand with
+        | h::t -> (c1::t)
+        | _ -> hand)
+    else if lie > 8 then (
+      match hand with
+        | h1::h2::h3::t -> (c1::c2::c3::t)
+        | h1::h2::t -> (c1::c2::t)
+        | h::t -> (c1::t)
+        | _ -> hand)
+    else if lie > 6 then (
+      match hand with
+        | h1::h2::t -> (c1::c2::t)
+        | h::t -> (c1::t)
+        | _ -> hand)
+    else if lie > 4 then (
+      match hand with
+        | h::t -> (c1::t)
+        | _ -> hand)
+    else hand
+    in new_hand
+
+
+(*[choose_hand3] returns move of either (BS pokerhand) or (Raise pokerhand).
+ *[hand] is current hand
+ *[all_hands] is list of all cards in play
+ *[prev_hands] is list of previosly called pokerhands
+ *[prev_hand] is most recently called pokerhand
+ *[first_hand] is boolean as to whether it is first hand called
+ *[diff] is difficulty of game (int between 1 and 3 incl)
+ *[trust] is boolean for whether player should trust cards called previously
+ *pokerhand when calling BS is previous hand, when calling Raise is next hand
+ *outcome determined on following factors:
+ *1. bs is called if [bs] returns true
+ *2. (Raise pokerhand) always returned on first round
+ *3. bs may automatically be called if [choose_hand2] returns pokerhand that
+ *   has few cards in common with potential cards in play
+ *4. (Raise pokerhand) may be returned such that hand is based on false
+ *   based on whether previous players lied, or current player lied*)
+let choose_hand3 hand all_hands prev_hands prev_hand first_hand diff trust =
+  Random.self_init ();
+  let automatic_bs = Random.int 11 in
+  let num_cards = List.length all_hands in
+  let new_hand = lie hand diff num_cards in
+  let next_hand = if List.length prev_hands = 0 then
+    choose_hand2 new_hand prev_hands (HighCard 2) trust
+  else choose_hand2 new_hand prev_hands prev_hand trust in
+  let is_bs = if first_hand then false else
+  (match prev_hand with
+    | FourOfAKind a -> if a = 14 then true else bs all_hands prev_hand diff
+    | _ -> bs all_hands prev_hand diff) in
+  let len = List.length (convert_phand_to_rank next_hand) in
+  let cards_present = count_one_hand (convert_phand_to_rank next_hand)
+    (fst (List.split hand)) (0, convert_phand_to_rank next_hand) in
+  let dif = len - fst cards_present in
+  if is_bs then BS prev_hand
+  else if dif >= 2 && automatic_bs > 5 then BS prev_hand
+  else if dif >= 3 && automatic_bs > 4 then BS prev_hand
+  else if dif >= 4 && automatic_bs > 2 then BS prev_hand
+  else Raise next_hand
+
+
+(*[cheater_bs] returns true if the AI will call BS or false if it will not
+ *[myhand] is list of the ais cards
+ *[cards] is the list of cards in the game during the round
+ *[prev_hand] is previous pokerhand
+ *[diff] is difficulty of game (between 0 and 30 excl)
+ *Calling BS depends on whethether or not the ais hand exists in all the cards
+ *held by any player in the game and a probabilit based of the AIs difficulty
+ *that determines whether or not the AI will know. Furthermore the AI will not
+ *call bs on any hand that exists in its own hand despite probabilities
+*)
+let cheater_bs myhand cards prev_hand diff =
+  Random.self_init ();
+  let random = Random.int 100 in
+  if hand_exists myhand prev_hand then false
+  else
+    match prev_hand with
+      |FourOfAKind 14 -> true
+      |_ ->
+        let b = hand_exists cards prev_hand in
+        match (diff/10) with
+          |0 -> if random > 75 then not b else b
+          |1 -> if random > 50 then not b else b
+          |_ -> if random > 10 then not b else b
+
+
+(*[nh_helper] returns move of either (BS pokerhand) or (Raise pokerhand)
+ *[prev_h] is previous pokerhand
+ *[cards] is the list of cards in the game during the round
+ *[hl] is the list of possible hands that can be raised
+ *[diff] the AI id that determines the difficulty(between 0 and 30 excl)
+ *Calling a Raise depends on the whether or not the next hand possible to be
+ *called exits in all the cards in the game and a probability based off the AIs
+ *ID(representing difficulty). If no possible hands are raised then the AI will
+ *call bs
+*)
+let rec nh_helper prev_h cards hl diff =
+Random.self_init ();
+let random = Random.int 100 in
+match hl with
+  |[] -> BS prev_h
+  |hd::tl -> match (diff/10) with
+    |0-> if random > 50 then
+            Raise hd
+          else (
+            if hand_exists cards hd then Raise hd
+            else nh_helper prev_h cards tl diff)
+    |1-> if random > 75 then
+            Raise hd
+          else (
+            if hand_exists cards hd then Raise hd
+            else nh_helper prev_h cards tl diff)
+    |_-> if random > 95 then
+            Raise hd
+          else (
+            if hand_exists cards hd then Raise hd
+            else nh_helper prev_h cards tl diff)
+
+
+(*[trusting ai] returns move (either BS or Raise)
+ *[h] is current player's hand*)
+let trusting_ai h ph cards hands_called diff trust =
+  match ph with
+    | Some h2 -> choose_hand3 h cards hands_called h2 false diff trust
+    | None -> choose_hand3 h cards hands_called (HighCard 1) true diff trust
+
+
+(*[cheating ai]
+  cheating ai is an ai that proccesses its move with knowledge of all the cards
+  currently in play (even those that are not its own)
+*)
+let cheating_ai myhand id ph cards =
+  match ph with
+    |Some ha ->
+      if (cheater_bs myhand cards ha id) then BS ha
+      else nh_helper ha cards (get_higher_hands ha) id
+    |None -> nh_helper (HighCard 1) cards (get_higher_hands (HighCard 1)) id
+
+
+(*[ai_turn] returns move of either BS or Raise. Depending on current player,
+ *a different stragety will be used to determing next hand
+ *[id] is current player's id
+ *[h] is current hand
+ *[ph] is previously called pokerhand
+ *[cards] is all cards in play
+ *[ph_lst] is list of previously called pokerhands
+ *[diff] is difficulty of the game*)
+let ai_turn id h ph cards ph_lst diff =
+  if (id mod 10 = 3) then cheating_ai h id ph cards
+  else if (id mod 10 = 2) then trusting_ai h ph cards ph_lst diff false
+  else trusting_ai h ph cards ph_lst diff true
+
+
 (********************** END AI **************************)
 
 (* [print_player hands hands] prints the hand of each player *)
@@ -1204,8 +1387,6 @@ module GameRound (D : Data.Cards) : Round = struct
     let prev_p = "Player "^(string_of_int (s.prev_player mod 10)) in
     match move with
     | BS p ->
-      let col = if prev_p = "1" then ANSITerminal.red
-                else ANSITerminal.green in
       print_endline (cur_p^" called BS!"
                           ^ " Let's check if the previous hand is there...\n");
       print_player_hands s.hands;
