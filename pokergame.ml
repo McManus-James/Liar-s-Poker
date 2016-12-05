@@ -828,6 +828,8 @@ let get_potential_cards pokerhands =
 
 (*[choose_hand2] is best pokerhand based on given inputs. That is, it will be
  *the higher pokerhand that has most cards in common with cards in play
+ *[trust] is boolean. If false, hand chosen will only depend on player's
+ *current hand. If true, hand chosen will depend on all potential cards in play
  *[player_hand] is current player's hand
  *[prev_hands] is all previously called pokerhands
  *[prev_hand] is most recently called pokerhand*)
@@ -858,11 +860,8 @@ let rec get_num hands prev_hand accum = match prev_hand with
  *be called
  *3. A higher difficulty increases the chances of BS in rule 1. and decreases
  *chance of BS in rule 2
-<<<<<<< HEAD
-=======
  *4. BS called if number of cards in play is fewer than number in previously
      called hand
->>>>>>> 06977c6412df2b0b819daaa0d92f194803c61ea4
 *)
 let bs hands prev_hand diff =
   let t1 = if diff = 1 then [94;85;75;65;55;10;5]
@@ -946,6 +945,13 @@ let lie hand diff num_cards =
     in new_hand
 
 (*[choose_hand3] returns move of either (BS pokerhand) or (Raise pokerhand).
+ *[hand] is current hand
+ *[all_hands] is list of all cards in play
+ *[prev_hands] is list of previosly called pokerhands
+ *[prev_hand] is most recently called pokerhand
+ *[first_hand] is boolean as to whether it is first hand called
+ *[diff] is difficulty of game (int between 1 and 3 incl)
+ *[trust] is boolean for whether player should trust cards called previously
  *pokerhand when calling BS is previous hand, when calling Raise is next hand
  *outcome determined on following factors:
  *1. bs is called if [bs] returns true
