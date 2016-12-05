@@ -63,8 +63,9 @@ module GameRound = struct
 
   (* initializes the [players] field of a round's state
    * [n] is the number of players to initialize
-   * [players] is the association list mapping pids to
-   * the numbers of cards they have *)
+   * [players] is the association list mapping pids to the numbers of cards
+   * they have
+   * [d] is the difficulty level *)
   let rec init_players n players d =
     if n = 0 then players
     else if n = 1 then init_players (n-1) ((n,4)::players) d
@@ -117,7 +118,7 @@ module GameRound = struct
   | (pid,num_cards)::tl ->
       if loser = pid then
         if num_cards = 1 then
-        (print_endline ("Player "^(string_of_int loser)^" is out!");
+        (print_endline ("Player "^(string_of_int (loser mod 10))^" is out!");
         update_players loser tl accu)
         else update_players loser tl (accu@[(pid,num_cards-1)])
       else update_players loser tl (accu@[(pid, num_cards)])
@@ -138,6 +139,7 @@ module GameRound = struct
       hands = hands;
       cards = cards
     }
+
 
   (* takes a pokerhand [phand] and converts it into a rank list of the ranks of
    * the cards in the hand that's called for checking purposes.
@@ -199,8 +201,7 @@ module GameRound = struct
 
 
   (* [string_of_pokerhand phand] returns the string representation of [phand]
-   * requires: [phand] is a valid pokerhand
-   *)
+   * [phand] is a valid pokerhand *)
   let string_of_pokerhand phand =
     match phand with
     | FourOfAKind p -> "four " ^ string_of_rank p ^ "s"
@@ -242,6 +243,11 @@ module GameRound = struct
     | _, Pair _ -> -1
     | HighCard x, HighCard y -> compare x y
 
+
+  (* [int_of_rank rank] returns the integer representation of [rank]. Raises
+   * InvalidMove if [rank] cannot be converted into an int, and raises
+   * InvalidRank if [rank] is not a valid rank for a pokerhand.
+   * [rank] is a string *)
   let int_of_rank rank =
     match rank with
     | ("ace" | "aces") -> 14
@@ -259,6 +265,8 @@ module GameRound = struct
           if (i > 1) && (i < 15) then i
           else raise InvalidRank) with
         | Failure _ -> raise InvalidMove
+
+
 
   let parse_single_rank rank =
     if List.length rank <> 1 then
@@ -300,7 +308,9 @@ module GameRound = struct
     |> rep (reg "two pair") "tp"
     |> rep (reg "high card") "hc"
 
-  (* takes input from the user and parses it into a pokerhand type *)
+  (* [parse_move move ph] takes input from the user and parses it into a
+   * pokerhand type. Raises InvalidRaise if [move] is not a higher hand than
+   * [ph] and raises InvalidMove if  *)
   let parse_move move ph =
     let r = Str.regexp "[^a-zA-Z0-9]+" in
     let words =  handle_acronyms move |> Str.split r in
@@ -815,6 +825,7 @@ let ai_turn id h ph cards ph_lst diff =
     print_player_hands s.hands;
     print_endline "All of the cards in play are:";
     print_hand s.cards
+
 
   let rec play_round s =
     let cur_hand = assoc s.cur_player s.hands in
