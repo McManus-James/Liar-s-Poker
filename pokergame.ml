@@ -504,7 +504,8 @@ let rec choose_hand1 cur_hand hand_ranks p_hands =
   match p_hands with
     | [] -> snd cur_hand
     | h::t -> let x = (compare_hand2 cur_hand hand_ranks h) in
-      if snd x = (HighCard 2) then choose_hand1 (compare_hand cur_hand hand_ranks h) hand_ranks t
+      if snd x = (HighCard 2)
+      then choose_hand1 (compare_hand cur_hand hand_ranks h) hand_ranks t
       else choose_hand1 x hand_ranks t
 
 (*[get_higher_three] is list of all ThreeOfAKind pokerhands higher ranking or
@@ -1130,7 +1131,8 @@ let ai_turn id h ph cards ph_lst diff =
     let cur_hand = assoc s.cur_player s.hands in
     let move =
       if s.cur_player = 1 then human_turn cur_hand s.raised_hand s.players
-      else ai_turn s.cur_player cur_hand s.raised_hand s.cards s.hands_called s.difficulty
+      else ai_turn s.cur_player cur_hand s.raised_hand
+           s.cards s.hands_called s.difficulty
     in
     let cur_p = "Player "^(string_of_int (s.cur_player mod 10)) in
     let prev_p = "Player "^(string_of_int (s.prev_player mod 10)) in
