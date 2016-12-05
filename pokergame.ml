@@ -47,8 +47,10 @@ module GameRound = struct
   exception InvalidRank
 
   type state = {
-    difficulty : int; (*difficulty of game. Between 1 and 3 incl. 1 = easy, 2 = medium, 3 = hard*)
-    players : (pid * int) list; (* association list mapping the pid to the number of cards that player has *)
+    difficulty : int; (* difficulty of game. Between 1 and 3 incl. 1 = easy,
+                       2 = medium, 3 = hard*)
+    players : (pid * int) list; (* association list mapping the pid to the
+                                number of cards that player has *)
     cur_player : pid; (* the pid of the player who's turn it currently is *)
     prev_player : pid; (* the pid of the previous player who made a turn. *)
     hands_called : pokerhand list; (* list of pokerhands called so far in the
@@ -72,8 +74,13 @@ module GameRound = struct
       |_ -> init_players (n - 1) (((n+20),4)::players) d
 
 
-  (* [deal_hands] is an association list mapping pid's to the number
-   * of cards they should receive  *)
+  (* [deal_hands] deals a hand to each player and returns an association list
+   * mapping pids to their hands
+   * [players] is an association list mapping pids to the number of cards that
+   * player has
+   * [accum] is the accumulator storing the association list mapping pid to
+   * hands that gets passed in each recursive call
+   * [d] is a deck that has already been shuffled *)
   let rec deal_hands players accum d =
     match players with
       | [] -> accum
@@ -810,10 +817,10 @@ let ai_turn id h ph cards ph_lst diff =
     print_hand s.cards
 
   let rec play_round s =
-    let cur_hand = List.assoc s.cur_player s.hands in
+    let cur_hand = assoc s.cur_player s.hands in
     let move =
       if s.cur_player = 1 then human_turn cur_hand s.raised_hand s.players
-      else ai_turn s.cur_player (List.assoc s.cur_player s.hands) s.raised_hand s.cards s.hands_called s.difficulty
+      else ai_turn s.cur_player cur_hand s.raised_hand s.cards s.hands_called s.difficulty
     in
     let cur_p = "Player "^(string_of_int (s.cur_player mod 10)) in
     let prev_p = "Player "^(string_of_int (s.prev_player mod 10)) in

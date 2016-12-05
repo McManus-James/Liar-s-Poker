@@ -16,7 +16,8 @@ module CardGame = struct
 
   type hand = card list
 
-  (* [string_of_suit s] returns the string representation of suit [s] *)
+  (* [string_of_suit s] returns the string representation of suit [s]
+   * requires: [s] is of type suit *)
   let string_of_suit (s:suit) =
     match s with
     | Spades -> "Spades"
@@ -24,7 +25,9 @@ module CardGame = struct
     | Diamonds -> "Diamonds"
     | Hearts -> "Hearts"
 
-  (* [string_of_rank r] returns the string representation of rank [r] *)
+
+  (* [string_of_rank r] returns the string representation of rank [r]
+   * requires: [r] is of type rank *)
   let string_of_rank (r:rank) =
     if r = 11 then "Jack"
     else if r = 12 then "Queen"
@@ -32,7 +35,9 @@ module CardGame = struct
     else if r = 14 then "Ace"
     else string_of_int r
 
-  (* [string_of_card c] formats a  *)
+
+  (* [string_of_card c] returns a string representation of a card [c]
+   * requires: [c] is a valid card *)
   let string_of_card (c:card) : string =
     string_of_rank (fst c) ^ " of " ^ string_of_suit (snd c)
 
@@ -60,9 +65,9 @@ module GameDeck = struct
 
   type deck = card list ref
 
-  let (empty:deck) = ref []
+  let (empty: deck) = ref []
 
-  (* helper function taken from Recitation 3: Lists, and Testing with OUnit
+  (* Helper function taken from Recitation 3: Lists, and Testing with OUnit
    * that creates an infix operator that makes a list of all integers from i
    * through j inclusive *)
   let (--) i j =
@@ -72,19 +77,22 @@ module GameDeck = struct
       in from i j []
 
 
-  (* helper function to instantiate a 52 card deck.
-   * [suit] is a suit, and [rank_list] is a list of
-   * all possible ranks
-   * [accum] is an accumulator holding the deck created so far
-   * function returns all the cards for a particular suit, from 2 through Ace
-   * (represented as rank 14) *)
+  (* [deck_helper suit rank_list accum] is a helper function to instantiate a
+   * 52 card deck that returns all the cards for a particular suit, from 2
+   * through ace (represented as rank 14)
+   * [suit] is a suit
+   * [rank_list] is a list of all possible ranks
+   * [accum] is an accumulator holding the deck created so far *)
   let rec deck_helper suit rank_list accum =
     match rank_list with
     | [] -> accum
     | h::t -> deck_helper suit t ((h, suit)::accum)
 
-  (* helper function that matches a list of suits and for each suit calls
-   * [deck_helper] to instantiate cards 1-14 for each suit *)
+
+  (* [suit_helper suit_list accum] is a helper function that for each suit in
+   * [suit_list] calls [deck_helper] to instantiate cards 1-14 for it
+   * [suit_list] is a list of all four possible suits
+   * [accum] holds the deck created so far *)
   let rec suit_helper suit_list accum = match suit_list with
     | [] -> accum
     | h::t -> suit_helper t ((deck_helper h (2--14) [])@accum)
@@ -93,20 +101,25 @@ module GameDeck = struct
   let rec new_deck (e : deck) : deck =
     ref (suit_helper [Hearts; Spades; Clubs; Diamonds] (!e))
 
-  (* Helper method for modifying the deck returns all but the first [n] elements of [lst]. If [lst] has fewer than
-   * [n] elements, return the empty list. Code taken from Recitation: Lists,
-   * and Testing with OUnit *)
-  let rec drop n h =
-    if n =0 then h else match h with
+
+  (* [drop n lst] is a helper method for modifying the deck. It returns all but
+   * the first [n] elements of [lst]. If [lst] has fewer than [n] elements,
+   * return the empty list. Code taken from Recitation: Lists, and Testing with
+   * OUnit *)
+  let rec drop n lst =
+    if n =0 then lst else match lst with
       | []->[]
       | x::xs -> drop (n-1) xs
 
-  (* returns the first [n] elements of [lst]. If [lst] has fewer than [n] elements, return all of them.
-   * Code taken from Recitation: Lists, and Testing with OUnit *)
-  let rec take n l =
-    if n = 0 then [] else match l with
+
+  (* [take n lst] returns the first [n] elements of [lst]. If [lst] has fewer
+   * than [n] elements, return all of them. Code taken from Recitation: Lists,
+   * and Testing with OUnit *)
+  let rec take n lst =
+    if n = 0 then [] else match lst with
       | [] -> []
       | (x::xs) -> x :: (take (n-1) xs)
+
 
   let shuffle_deck (d : deck) : deck =
     let deck = !d in
@@ -122,6 +135,7 @@ module GameDeck = struct
     done;
     d := (Array.to_list array_deck);
     d
+
 
   let deal (n : int) (d : deck) : hand =
     let hand = take n !d in
