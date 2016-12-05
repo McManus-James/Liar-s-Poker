@@ -845,14 +845,16 @@ let rec get_num hands prev_hand accum = match prev_hand with
  *be called
  *3. A higher difficulty increases the chances of BS in rule 1. and decreases
  *chance of BS in rule 2
+ *4. BS called if number of cards in play is fewer than number in previously
+     called hand
 *)
 let bs hands prev_hand diff =
   let t1 = if diff = 1 then [94;85;75;65;55;10;5]
     else if diff = 2 then [96;93;88;80;75;50;50]
-    else [98;95;92;900;88;88;88] in
+    else [98;95;92;90;88;88;88] in
   let t2 = if diff = 1 then [93;86;55;40;40]
-    else if diff = 2 then [70;55;40;30;20]
-    else [50;50;45;5;0] in
+    else if diff = 2 then [60;50;40;30;20]
+    else [40;40;35;5;0] in
   Random.self_init ();
   let random = Random.int 100 in
   let cards = fst (List.split hands) in
@@ -860,7 +862,9 @@ let bs hands prev_hand diff =
   let len = List.length hand_ranks in
   let num = get_num cards hand_ranks 0 in
   let dif = len - num in
-  if dif = 0 then
+  if List.length hands - List.length (convert_phand_to_rank prev_hand) < 0
+  then false
+  else if dif = 0 then
     (match prev_hand with
       | HighCard _ -> if random > List.nth t1 0 then true else false
       | Pair _ -> if random > List.nth t1 1 then true else false
@@ -951,7 +955,7 @@ let choose_hand3 hand all_hands prev_hands prev_hand first_hand diff =
   if is_bs then BS prev_hand
   else if dif >= 2 && automatic_bs > 7 then BS prev_hand
   else if dif >= 3 && automatic_bs > 4 then BS prev_hand
-  else if dif >= 4 && automatic_bs > 3 then BS prev_hand
+  else if dif >= 4 && automatic_bs > 2 then BS prev_hand
   else Raise next_hand
 
 (*[cheater_bs] returns true if the AI will call BS or false if it will not
