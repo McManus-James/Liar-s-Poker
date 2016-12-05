@@ -1,18 +1,18 @@
 module type Cards = sig
-  (* The rank of a card *)
-  type rank = int
+  (* The type of a rank of a card *)
+  type rank
 
-  (* The suit of a card *)
-  type suit = Hearts | Clubs | Diamonds | Spades
+  (* The type of a suit of a card *)
+  type suit
 
   (* The type of a card *)
-  type card = (rank * suit)
+  type card
 
   (* The type of a hand *)
-  type hand = card list
+  type hand
 
   (* The type of a deck *)
-  type deck = card list ref
+  type deck
 
   (* [empty] is the empty deck *)
   val empty : deck
@@ -24,7 +24,7 @@ module type Cards = sig
    * card deck with the cards in order *)
   val new_deck : deck -> deck
 
-  (* [shuffle_deck d] takes in a Deck [d] and returns a shuffled copy of the
+  (* [shuffle_deck d] takes in a deck [d] and returns a shuffled copy of the
    * original deck *)
   val shuffle_deck: deck -> deck
 
@@ -32,7 +32,7 @@ module type Cards = sig
    * returning a hand with [n] cards *)
   val deal : int -> deck -> hand
 
-  (* [string_of_rank r] is a string representation of [r] *)
+  (* [string_of_rank r] is a string representation of rank [r] *)
   val string_of_rank : rank -> string
 
   (* [in_play hands] is the hand made up of all [hands] in play *)
@@ -42,3 +42,5 @@ module type Cards = sig
   val string_of_card : card -> string
 
 end
+
+module CardGame

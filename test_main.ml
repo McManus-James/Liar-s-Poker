@@ -3,8 +3,6 @@ open Game
 open Pokergame
 open Data
 open CardGame
-open GameDeck
-open GameRound
 
 
 let card_tests = [
