@@ -8,7 +8,8 @@ let rec play info =
   let loser = play_round info in
   let new_info = update_state (loser) info in
   match winner new_info with
-    | Some p -> p
+    | Some p -> print_endline "***************************************** WINNER ********************************";
+                p
     | None -> play new_info
 
 
@@ -19,6 +20,6 @@ let main n d =
   let w = play state in
   let col = if w = 1 then ANSITerminal.green
             else ANSITerminal.red in
-  ANSITerminal.(print_string [col] ("Player "^(string_of_int (play state))
+  ANSITerminal.(print_string [col] ("Player "^(string_of_int (w mod 10))
                                   ^" wins!"))
 
