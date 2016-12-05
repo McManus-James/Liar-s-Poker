@@ -4,3 +4,5 @@ module type Poker = sig
   type pokerhand
   type move
 end
+
+module LiarsPoker
