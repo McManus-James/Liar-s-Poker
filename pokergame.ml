@@ -1,14 +1,17 @@
-module type Poker = sig
-  include Data.Cards
-  type pid
+module type Round  = sig
+  type pid = int
   type pokerhand
   type move
+  type state
+  val init_state : pid -> int -> state
+  val update_state : pid -> state -> state
+  val play_round : state -> pid
+  val winner : state -> pid option
 end
 
-module LiarsPoker = struct
-
-  include Data.CardGame
-
+module GameRound (D : Data.Cards) : Round = struct
+  open List
+  open D
   type pid = int
 
   type pokerhand =
@@ -26,21 +29,6 @@ module LiarsPoker = struct
     | BS of pokerhand (* The hand which BS was called on *)
     | Raise of pokerhand (* The hand that was Raised *)
 
-end
-
-module type Round  = sig
-  include Poker
-  type state
-  val init_state : pid -> state
-  val update_state : pid -> state -> state
-  val play_round : state -> pid
-  val winner : state -> pid option
-end
-
-module GameRound = struct
-  open List
-  open Data.GameDeck
-  include LiarsPoker
   exception InvalidMove
   exception InvalidRaise of pokerhand
   exception InvalidBS
@@ -58,8 +46,9 @@ module GameRound = struct
     raised_hand : pokerhand option; (* previous move called in round *)
     hands : (pid * hand) list; (* association list mapping pids to their
                                respective hands *)
-    cards : card list (* list of all the cards in play *)
+    cards : hand (* list of all the cards in play *)
   }
+
 
   (* [init_players n players d] initializes the [players] field of a state
    * [n] is the number of players to initialize
@@ -86,6 +75,9 @@ module GameRound = struct
       | [] -> accum
       | (p, n)::t -> deal_hands t ((p, (deal n d))::accum) d
 
+  (* [init_state] initialized a rounds state
+   * [n] is the number of players to initialize
+   * [d] is the difficulty level *)
   let init_state n d =
     let players = init_players n [] d in
     let hands = deal_hands players [] (shuffle_deck (new_deck empty)) in
@@ -100,17 +92,28 @@ module GameRound = struct
       cards = cards
     }
 
+  (* [index_of] returns the index of an element x in a list
+   * [x] element searching for
+   * [lst] is the list being searched through
+   * [i] is the pointer for the index *)
   let rec index_of x lst i =
     match lst with
     | [] -> failwith "Not Found"
     | h::tl -> if h = x then i else index_of x tl (i+1)
 
+  (* [next_player] chooses the next player in the game to make a turn
+   * [p] p is the current player
+   * [players] is an association list of pid and number of cards remaining*)
   let next_player p players =
     let pids = fst (split players) in
     let i = index_of p pids 0 in
     if i = (List.length pids -1) then hd pids
     else nth pids (i+1)
 
+  (* [update_players] updates the number of cards players have afer a round
+   * [loser] is the loser of the round
+   * [players] is a (pid*numcards)list
+   * accu is the accumulator for the return list *)
   let rec update_players loser players accu =
   match players with
   | [] -> accu
@@ -122,7 +125,9 @@ module GameRound = struct
         else update_players loser tl (accu@[(pid,num_cards-1)])
       else update_players loser tl (accu@[(pid, num_cards)])
 
-
+  (* [update_state] updates a games state following a round
+   * [l] is the loser of the last round
+   * [s] is the state form the last round*)
   let update_state l s =
     let players = update_players l s.players [] in
     let next =
@@ -139,7 +144,6 @@ module GameRound = struct
       cards = cards
     }
 
-
   (* takes a pokerhand [phand] and converts it into a rank list of the ranks of
    * the cards in the hand that's called for checking purposes.
    * Does not return a card list, because the suits of the cards are not
@@ -155,7 +159,8 @@ module GameRound = struct
     | Pair p -> [p; p]
     | HighCard p -> [p]
 
-
+  (* takes a rank list of the ranks of the cards in the hand that's called
+   * and converts it to a pokerhand [phand] *)
   let convert_rank_to_phand hand = match hand with
     | a::[] -> HighCard a
     | a::b::[] -> Pair a
@@ -270,26 +275,31 @@ module GameRound = struct
           else raise InvalidRank) with
         | Failure _ -> raise InvalidMove
 
-
-
+  (* [parse_single_rank rank] is the rank the user typed
+   * raise invalid move if the rank is not a valid single rank *)
   let parse_single_rank rank =
     if List.length rank <> 1 then
       raise InvalidMove
     else int_of_rank (hd rank)
 
+  (* [parse_straight_rank rank] is the two rank tuple the user typed
+   * rais InvalidMove if the rank is not a valid double rank *)
   let parse_double_rank ranks =
     if List.length ranks <> 2 then
       raise InvalidMove
     else (int_of_rank (hd ranks), int_of_rank (nth ranks 1))
 
-   let parse_straight_rank rank =
-    if List.length rank <> 1 then
-      raise InvalidMove
-    else
-      let r = int_of_rank (hd rank) in
-      if (r < 6 || r > 14) then raise InvalidMove
-      else r
+  (* [parse_straight_rank rank] is the rank that the user typed
+   * raises InvalidMove if the rank is not with 6-14 *)
+ let parse_straight_rank rank =
+  if List.length rank <> 1 then
+    raise InvalidMove
+  else
+    let r = int_of_rank (hd rank) in
+    if (r < 6 || r > 14) then raise InvalidMove
+    else r
 
+  (* [parse_raised raised] is the pokerhand type that the user raised *)
   let parse_raised raised =
     let hand_type = hd raised in
     let hand_rank = tl raised in
@@ -303,10 +313,12 @@ module GameRound = struct
       | "hc" -> HighCard (parse_single_rank hand_rank)
       | _ -> raise InvalidMove
 
-  let handle_acronyms c =
+  (* [handle_acronyms s] is [s] with the long versions of pokerhand types
+   * replaced by their shortcuts *)
+  let handle_acronyms s =
     let rep = Str.global_replace in
     let reg = Str.regexp in
-    rep (reg "four of a kind") "four" c
+    rep (reg "four of a kind") "four" s
     |> rep (reg "full house") "fh"
     |> rep (reg "three of a kind") "three"
     |> rep (reg "two pair") "tp"
@@ -383,7 +395,6 @@ module GameRound = struct
     print_endline ("The total number of cards in play is "^
                   string_of_int total_num_cards^".")
 
-
  let rec human_turn h (ph:pokerhand option) (pl : (pid * int) list) =
     print_endline ("\nPlayer 1, your turn! Here is your hand: \n");
     print_hand h;
@@ -430,7 +441,6 @@ module GameRound = struct
       | InvalidRank -> print_endline ("I'm sorry, but that is not a valid "^
                        "rank. Please try again.");
                        human_turn h ph pl
-
 
 (******************AI*********************)
 
@@ -840,12 +850,13 @@ let get_potential_cards pokerhands =
  *[player_hand] is current player's hand
  *[prev_hands] is all previously called pokerhands
  *[prev_hand] is most recently called pokerhand*)
-let choose_hand2 player_hand prev_hands prev_hand =
+let choose_hand2 player_hand prev_hands prev_hand trust =
   let higher_hands = get_higher_hands prev_hand in
   let player_hand_ranks = fst (List.split player_hand) in
   let prev_hand_ranks = get_potential_cards prev_hands in
-  choose_hand1 ((-1), HighCard 2) (player_hand_ranks@prev_hand_ranks)
-    higher_hands
+  if trust then choose_hand1 ((-1), HighCard 2)
+    (player_hand_ranks@prev_hand_ranks) higher_hands
+  else choose_hand1 ((-1), HighCard 2) (player_hand_ranks) higher_hands
 
 (*[get_num] returns number of cards that are in both [prev_hand] and [hands]*)
 let rec get_num hands prev_hand accum = match prev_hand with
@@ -866,14 +877,16 @@ let rec get_num hands prev_hand accum = match prev_hand with
  *be called
  *3. A higher difficulty increases the chances of BS in rule 1. and decreases
  *chance of BS in rule 2
+ *4. BS called if number of cards in play is fewer than number in previously
+     called hand
 *)
 let bs hands prev_hand diff =
   let t1 = if diff = 1 then [94;85;75;65;55;10;5]
     else if diff = 2 then [96;93;88;80;75;50;50]
-    else [98;95;92;900;88;88;88] in
+    else [98;95;92;90;88;88;88] in
   let t2 = if diff = 1 then [93;86;55;40;40]
-    else if diff = 2 then [70;55;40;30;20]
-    else [50;50;45;5;0] in
+    else if diff = 2 then [60;50;40;30;20]
+    else [40;40;35;5;0] in
   Random.self_init ();
   let random = Random.int 100 in
   let cards = fst (List.split hands) in
@@ -881,7 +894,9 @@ let bs hands prev_hand diff =
   let len = List.length hand_ranks in
   let num = get_num cards hand_ranks 0 in
   let dif = len - num in
-  if dif = 0 then
+  if List.length hands - List.length (convert_phand_to_rank prev_hand) < 0
+  then false
+  else if dif = 0 then
     (match prev_hand with
       | HighCard _ -> if random > List.nth t1 0 then true else false
       | Pair _ -> if random > List.nth t1 1 then true else false
@@ -924,7 +939,7 @@ let lie hand diff num_cards =
   let c3 = (get_rand_num 2 15, Hearts) in
   if diff = 1 then hand else
     let new_hand =
-    if num_cards < 10 && lie > 5 then (
+    if num_cards < 10 && lie > 7 then (
       match hand with
         | h::t -> (c1::t)
         | _ -> hand)
@@ -955,24 +970,26 @@ let lie hand diff num_cards =
  *   has few cards in common with potential cards in play
  *4. (Raise pokerhand) may be returned such that hand is based on false
  *   based on whether previous players lied, or current player lied*)
-let choose_hand3 hand all_hands prev_hands prev_hand first_hand diff =
+let choose_hand3 hand all_hands prev_hands prev_hand first_hand diff trust =
   Random.self_init ();
   let automatic_bs = Random.int 11 in
   let num_cards = List.length all_hands in
   let new_hand = lie hand diff num_cards in
-  let next_hand = if List.length prev_hands = 0 then choose_hand2 new_hand prev_hands (HighCard 2)
-  else choose_hand2 new_hand prev_hands prev_hand in
+  let next_hand = if List.length prev_hands = 0 then
+    choose_hand2 new_hand prev_hands (HighCard 2) trust
+  else choose_hand2 new_hand prev_hands prev_hand trust in
   let is_bs = if first_hand then false else
   (match prev_hand with
     | FourOfAKind a -> if a = 14 then true else bs all_hands prev_hand diff
     | _ -> bs all_hands prev_hand diff) in
   let len = List.length (convert_phand_to_rank next_hand) in
-  let cards_present = count_one_hand (convert_phand_to_rank next_hand) (fst (List.split hand)) (0, convert_phand_to_rank next_hand) in
+  let cards_present = count_one_hand (convert_phand_to_rank next_hand)
+    (fst (List.split hand)) (0, convert_phand_to_rank next_hand) in
   let dif = len - fst cards_present in
   if is_bs then BS prev_hand
   else if dif >= 2 && automatic_bs > 7 then BS prev_hand
   else if dif >= 3 && automatic_bs > 4 then BS prev_hand
-  else if dif >= 4 && automatic_bs > 3 then BS prev_hand
+  else if dif >= 4 && automatic_bs > 2 then BS prev_hand
   else Raise next_hand
 
 (*[cheater_bs] returns true if the AI will call BS or false if it will not
@@ -1031,12 +1048,13 @@ match hl with
           if hand_exists cards hd then Raise hd
           else nh_helper prev_h cards tl diff)
 
+
 (*[trusting ai] returns move (either BS or Raise)
  *[h] is current player's hand*)
-let trusting_ai h ph cards hands_called diff =
+let trusting_ai h ph cards hands_called diff trust =
   match ph with
-  | Some h2 -> choose_hand3 h cards hands_called h2 false diff
-  | None -> choose_hand3 h cards hands_called (HighCard 1) true diff
+  | Some h2 -> choose_hand3 h cards hands_called h2 false diff trust
+  | None -> choose_hand3 h cards hands_called (HighCard 1) true diff trust
 
 (*[cheating ai]
   cheating ai is an ai that proccesses its move with knowledge of all the cards
@@ -1059,7 +1077,8 @@ let cheating_ai myhand id ph cards =
  *[diff] is difficulty of the game*)
 let ai_turn id h ph cards ph_lst diff =
   if (id mod 10 = 3) then cheating_ai h id ph cards
-  else trusting_ai h ph cards ph_lst diff
+  else if (id mod 10 = 2) then trusting_ai h ph cards ph_lst diff false
+  else trusting_ai h ph cards ph_lst diff true
 
 
 (********************** END AI **************************)

@@ -2,20 +2,25 @@
  * hand, gets each player's move on their turn, and checks if a pokerhand exists
  * within all the cards in play the round *)
 module type Round = sig
-  include Poker
-  (* The type of a player id *)
-  type pid
+  (* the type of a player id *)
+  type pid = int
+
+  (* the type of a pokerhand *)
+  type pokerhand
+
+  (* the type of a move *)
+  type move
 
   (* The state of the round *)
   type state
 
   (* [init_state n] is the state of the first round of Liars Poker with [n]
    * players *)
-  val init_state : pid -> state
+  val init_state : pid -> int -> state
 
   (* [update_state l s] is the state the next round after player [l] loses
    * round [s] *)
-  val update_state : pid ->  state -> state
+  val update_state : pid -> state -> state
 
   (* [play_round s] returns the id of the loser of round s *)
   val play_round  : state -> pid
@@ -25,5 +30,3 @@ module type Round = sig
    val winner : state -> pid option
 
 end
-
-module GameRound

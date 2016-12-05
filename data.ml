@@ -2,12 +2,6 @@ open String
 open List
 
 module type Cards = sig
-  type card
-  type hand
-  val print_hand : hand -> unit
-end
-
-module CardGame = struct
   type rank = int
 
   type suit = Hearts | Clubs | Diamonds | Spades
@@ -15,6 +9,31 @@ module CardGame = struct
   type card = (rank * suit)
 
   type hand = card list
+
+  type deck = card list ref
+
+  val empty : deck
+  val print_hand : hand -> unit
+  val new_deck : deck -> deck
+  val shuffle_deck: deck -> deck
+  val deal : int -> deck -> hand
+  val string_of_rank : int -> string
+  val in_play : hand list -> hand
+  val string_of_card : card -> string
+end
+
+module CardGame : Cards = struct
+  type rank = int
+
+  type suit = Hearts | Clubs | Diamonds | Spades
+
+  type card = (rank * suit)
+
+  type hand = card list
+
+  type deck = card list ref
+
+  let empty = ref []
 
   (* [string_of_suit s] returns the string representation of suit [s]
    * requires: [s] is of type suit *)
@@ -47,25 +66,6 @@ module CardGame = struct
     | [] -> ()
     | h::t -> print_endline (string_of_card h);
               print_hand t
-
-end
-
-module type Deck = sig
-  include Cards
-  type deck
-  val empty : deck
-  val new_deck : deck -> deck
-  val shuffle_deck: deck -> deck
-  val deal : int -> deck -> hand
-end
-
-module GameDeck = struct
-
-  include CardGame
-
-  type deck = card list ref
-
-  let (empty: deck) = ref []
 
   (* Helper function taken from Recitation 3: Lists, and Testing with OUnit
    * that creates an infix operator that makes a list of all integers from i
@@ -142,4 +142,19 @@ module GameDeck = struct
     d := drop n !d;
     hand
 
+  let in_play hands =
+    List.flatten hands
+
+  (*[get_rand_num] returns random number between lower bound [l] (incl) and
+   *upper bout [u] (excl)*)
+  let rec get_rand_num l u =
+    Random.self_init;
+    let num = Random.int u in
+    if num >= l then num else get_rand_num l u
+
+  let random_card =
+    (get_rand_num 2 15, Hearts)
+
+  let num_cards hand =
+    length hand
 end
