@@ -10,5 +10,9 @@ let rec play info =
 
 let main n d =
   let state = init_state n d in
-  print_endline ("Player "^(string_of_int (play state))^" wins!")
+  let w = play state in
+  let col = if w = 1 then ANSITerminal.green
+            else ANSITerminal.red in
+  ANSITerminal.(print_string [col] ("Player "^(string_of_int (play state))
+                                  ^" wins!"))
 

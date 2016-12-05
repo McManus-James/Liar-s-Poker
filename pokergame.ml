@@ -408,20 +408,23 @@ module GameRound (D : Data.Cards) : Round = struct
     else
       try (parse_move move prev) with
       | InvalidMove ->
-          print_endline "I'm sorry, but that is not a valid move.";
+          ANSITerminal.(print_string [red]
+                        "I'm sorry, but that is not a valid move.\n");
           human_turn h ph pl
       | InvalidRaise phand ->
-          print_endline ("I'm sorry, but "^(string_of_pokerhand phand)
-                        ^" is not a higher hand than the previously raised hand"
-                        ^":\n"^(string_of_pokerhand prev));
+          ANSITerminal.(print_string [red]
+            ("I'm sorry, but "^(string_of_pokerhand phand)
+            ^" is not a higher hand than the previously raised hand"
+            ^":\n"^(string_of_pokerhand prev)));
           human_turn h ph pl
       | InvalidBS ->
-          print_endline ("You can't call BS on the first turn of a"
-                        ^" round.");
+          ANSITerminal.(print_string [red]
+          ("You can't call BS on the first turn of a round.\n"));
           human_turn h ph pl
-      | InvalidRank -> print_endline ("I'm sorry, but that is not a valid "^
-                       "rank. Please try again.");
-                       human_turn h ph pl
+      | InvalidRank ->
+        ANSITerminal.(print_string [red] ("I'm sorry, but that is not a valid "^
+                                          "rank. Please try again."));
+        human_turn h ph pl
 
 (******************AI*********************)
 
@@ -1111,18 +1114,24 @@ let ai_turn id h ph cards ph_lst diff =
     let prev_p = "Player "^(string_of_int (s.prev_player mod 10)) in
     match move with
     | BS p ->
+      let col = if prev_p = "1" then ANSITerminal.red
+                else ANSITerminal.green in
       print_endline (cur_p^" called BS!"
                           ^ " Let's check if the previous hand is there...\n");
       print_player_hands s.hands;
       if (hand_exists s.cards p) then
-        (print_endline ("The hand "^(string_of_pokerhand p)^" is here. "
-                      ^cur_p^" loses this round.");
+        let col = if cur_p = "Player 1" then ANSITerminal.red
+                  else ANSITerminal.green in
+        (ANSITerminal.(print_string [col] ("The hand "^(string_of_pokerhand p)
+                      ^" is here. "^cur_p^" loses this round.\n"));
         print_endline ("\n*********************************** END OF ROUND "^
                       "***********************************\n");
         s.cur_player)
       else
-        (print_endline ("The hand "^(string_of_pokerhand p)^" is not here. "
-                      ^prev_p^" loses this round.");
+        let col = if prev_p = "Player 1" then ANSITerminal.red
+                else ANSITerminal.green in
+        (ANSITerminal.(print_string [col] ("The hand "^(string_of_pokerhand p)
+                      ^" is not here. "^prev_p^" loses this round.\n"));
         print_endline ("\n*********************************** END OF ROUND "^
                       "***********************************\n");
         s.prev_player)
