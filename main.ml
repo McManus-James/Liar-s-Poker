@@ -10,10 +10,11 @@ let rec get_number_players i =
     (print_endline "The number of players may be at most 9. Please try again.";
     get_number_players 0)
   else num_players)
-  with Failure _ -> print_endline ("The number of players must "^
-                                  "be an integer between 2 and 9. Please try "^
-                                  "again.");
-                                  get_number_players 0
+  with Failure _ -> ANSITerminal.(print_string [red]
+                    ("The number of players must "^
+                    "be an integer between 2 and 9. Please try "^
+                    "again."));
+                    get_number_players 0
 
 let rec get_difficulty i =
   try (print_endline ("Please enter the difficulty 1-3.");
@@ -26,9 +27,10 @@ let rec get_difficulty i =
     (print_endline "The difficulty may be at most 3. Please try again.";
     get_difficulty 0)
   else diff)
-  with Failure _ -> print_endline ("The difficulty must be an "^
-                                  "integer between 1 and 3. Please try again.");
-                                  get_difficulty 0
+  with Failure _ -> ANSITerminal.(print_string [red]
+                    ("The difficulty must be an "^
+                    "integer between 1 and 3. Please try again."));
+                    get_difficulty 0
 
 
 let () =

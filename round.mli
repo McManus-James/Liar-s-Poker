@@ -3,7 +3,7 @@
  * within all the cards in play the round *)
 module type Round = sig
   (* the type of a player id *)
-  type pid = int
+  type pid
 
   (* the type of a pokerhand *)
   type pokerhand
