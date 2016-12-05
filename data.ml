@@ -4,10 +4,16 @@ open List
 module type Cards = sig
   type card
   type hand
+  type deck
+  val empty : deck
   val print_hand : hand -> unit
+  val new_deck : deck -> deck
+  val shuffle_deck: deck -> deck
+  val deal : int -> deck -> hand
+  val in_play : hand list -> hand
 end
 
-module CardGame = struct
+module CardGame : Cards = struct
   type rank = int
 
   type suit = Hearts | Clubs | Diamonds | Spades
@@ -15,6 +21,10 @@ module CardGame = struct
   type card = (rank * suit)
 
   type hand = card list
+
+  type deck = card list ref
+
+  let empty = ref []
 
   (* [string_of_suit s] returns the string representation of suit [s] *)
   let string_of_suit (s:suit) =
@@ -44,25 +54,6 @@ module CardGame = struct
     | h::t -> print_endline (string_of_card h);
               print_hand t
 
-end
-
-module type Deck = sig
-  include Cards
-  type deck
-  val empty : deck
-  val new_deck : deck -> deck
-  val shuffle_deck: deck -> deck
-  val deal : int -> deck -> hand
-end
-
-module GameDeck = struct
-
-  include CardGame
-
-  type deck = card list ref
-
-  let (empty:deck) = ref []
-
   (* helper function taken from Recitation 3: Lists, and Testing with OUnit
    * that creates an infix operator that makes a list of all integers from i
    * through j inclusive *)
@@ -71,7 +62,6 @@ module GameDeck = struct
       if i>j then l
       else from i (j-1) (j::l)
       in from i j []
-
 
   (* helper function to instantiate a 52 card deck.
    * [suit] is a suit, and [rank_list] is a list of
@@ -128,5 +118,8 @@ module GameDeck = struct
     let hand = take n !d in
     d := drop n !d;
     hand
+
+  let in_play hands =
+    List.flatten hands
 
 end
