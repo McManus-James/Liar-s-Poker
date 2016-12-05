@@ -1,3 +1,9 @@
+module NPC  : sig
+  include Poker
+  val ai_turn : pid -> hand -> pokerhand ->
+                hand -> pokerhand list -> int -> move
+end = struct
+include LiarsPoker
 let rec match_one_card card hand ret_hand = match hand with
   | [] -> None
   | h::t -> if card = h then Some (ret_hand@t)
@@ -33,22 +39,6 @@ let rec choose_hand1 cur_hand player_hand_ranks (p_hands : pokerhand list) : pok
       if snd x = (HighCard 2) then choose_hand1 (compare_hand cur_hand player_hand_ranks h) player_hand_ranks t
       else choose_hand1 x player_hand_ranks t
 
-type pokerhand =
-    | FourOfAKind of int
-    | FullHouse of (int * int) (* first int is rank of the three of
-                               a kind; second int is the rank of
-                               the pair *)
-    | Straight of int (* the int is the high card in the straight *)
-    | ThreeOfAKind of int
-    | TwoPair of (int * int) (* first int is rank of the higher
-                            pair; second int is the rank of the
-                            lower pair *)
-    | Pair of int
-    | HighCard of int
-
-  type move =
-    | BS of pokerhand (* The hand which BS was called on *)
-    | Raise of pokerhand (* The hand that was Raised *)
 
 
 let rec get_higher_three n lst =
@@ -117,95 +107,6 @@ let get_higher_hands hand = match hand with
     let l = (if a < b then a else b) in
     (get_higher_full_house l h)@(get_higher_four 2 [])
   | FourOfAKind h -> get_higher_four (h + 1) []
-
-
-
-let rec h_cards_creator_helper l handl =
-  match handl with
-  |[] -> List.rev l
-  |hd::tl -> match hd with
-    |HighCard h -> h_cards_creator_helper ([h]::l) tl
-    |Pair h -> h_cards_creator_helper ([h;h]::l) tl
-    |TwoPair (a,b) -> h_cards_creator_helper ([a;a;b;b]::l) tl
-    |ThreeOfAKind h -> h_cards_creator_helper ([h;h;h]::l) tl
-    |Straight h -> h_cards_creator_helper ([h-3;h-2;h-1;h]::l) tl
-    |FullHouse (a,b) -> h_cards_creator_helper ([a;a;a;b;b]::l) tl
-    |FourOfAKind h -> h_cards_creator_helper ([h;h;h;h]::l) tl
-
-let h_cardsl_creator hand =
-  let hl = get_higher_hands hand in
-  h_cards_creator_helper [] hl
-
-
-let hand_exists_2 hands handrank =
-  let ranks = (List.sort compare hands) in
-  let hand_rank_lst = convert_phand_to_rank handrank in
-  match handrank with
-    | HighCard p -> List.exists (fun x -> x = p) ranks
-    | Pair p -> let lst = List.filter (fun x -> x = p) ranks in
-                if (List.length lst > 1) then true
-                else false
-    | TwoPair (p, t) -> let lst = List.filter (fun x -> x = p) ranks in
-                        let lst2 = List.filter (fun x -> x = t) ranks in
-                        if (List.length lst > 1) && (List.length lst2 > 1) then true
-                        else false
-    | ThreeOfAKind p -> let lst = List.filter (fun x -> x = p) ranks in
-                        if (List.length lst > 2) then true
-                        else false
-    | Straight p -> check_straight hand_rank_lst ranks
-    | FullHouse (p, t) -> let lst = List.filter (fun x -> x = p) ranks in
-                          let lst2 = List.filter (fun x -> x = t) ranks in
-                          if (List.length lst > 2) && (List.length lst2 > 1) then true
-                          else false
-    | FourOfAKind p -> let lst = List.filter (fun x -> x = p) ranks in
-                       if (List.length lst > 3) then true
-                       else false
-
-let new_bs cards prev_hand diff =
-  Random.self_init ();
-  let random = Random.int 100 in
-  match prev_hand with
-  |FourOfAkind 14 -> true
-  |_ ->
-    let b = hand_exists_2 cards prev_hand in
-    match (diff/10) with
-    |0-> if random > 50 then not b else b
-    |1-> if random > 25 then not b else b
-    |2-> if random > 5 then not b else b
-
-
-let rec nh_helper cards hl p =
-Random.self_init ();
-let random = Random.int 100 in
-match hl with
-|[] -> None
-|hd::tl -> match (p/10) with
-  |0-> if random > 50 then
-          Some hd
-        else (
-          if hand_exists_2 cards hd then Some hd
-          else nh_helper cards tl p)
-  |1-> if random > 75 then
-          Some hd
-        else (
-          if hand_exists_2 cards hd then Some hd
-          else nh_helper cards tl p)
-  |2-> if random > 95 then
-          Some hd
-        else (
-          if hand_exists_2 cards hd then Some hd
-          else nh_helper cards tl p)
-
-let ai_turn id h ph cards =
-  match ph with
-  |Some ha ->
-    if new_bs cards ha id then BS ha
-    else match nh_helper cards (get_higher_hands h) id with
-    |None -> BS ha
-    |Some hand -> Raise hand
-  |None -> Raise nh_helper cards (get_higher_hands h) id
-
-
 
 
 type hand_lists = {
@@ -344,7 +245,9 @@ let rec get_num hands prev_hand accum = match prev_hand with
   | h::t -> if List.mem h hands then get_num hands t (accum + 1)
     else get_num hands t accum
 
-let bs hands prev_hand =
+let bs hands prev_hand diff =
+  let t1 = if diff = 1 then [94;85;80;55;45;25] else if diff = 2 then [98;93;85;70;75;60;60] else [98;93;85;70;75;60;60] in
+  let t2 = if diff = 1 then [93;86;55;35;30] else if diff = 2 then [75;60;45;15;10] else [75;60;45;15;10] in
   Random.self_init ();
   let random = Random.int 100 in
   let cards = fst (List.split hands) in
@@ -354,41 +257,63 @@ let bs hands prev_hand =
   let dif = len - num in
   if dif = 0 then
     (match prev_hand with
-      | HighCard _ -> if random > 95 then true else false
-      | Pair _ -> if random > 90 then true else false
-      | TwoPair _ -> if random > 80 then true else false
-      | ThreeOfAKind _ -> if random > 60 then true else false
-      | Straight _ -> if random > 60 then true else false
-      | FullHouse _ -> if random > 40 then true else false
-      | FourOfAKind _ -> if random > 30 then true else false
+      | HighCard _ -> if random > List.nth t1 0 then true else false
+      | Pair _ -> if random > List.nth t1 1 then true else false
+      | TwoPair _ -> if random > List.nth t1 2 then true else false
+      | ThreeOfAKind _ -> if random > List.nth t1 3 then true else false
+      | Straight _ -> if random > List.nth t1 4 then true else false
+      | FullHouse _ -> if random > List.nth t1 5 then true else false
+      | FourOfAKind _ -> if random > List.nth t1 6 then true else false
     )
-  else if dif = 1 && random > 90 then true
-  else if dif = 2 && random > 85 then true
-  else if dif = 3 && random > 50 then true
-  else if dif = 4 && random > 30 then true
-  else if dif = 5 && random > 20 then true
+  else if dif = 1 && random > List.nth t2 0 then true
+  else if dif = 2 && random > List.nth t2 1 then true
+  else if dif = 3 && random > List.nth t2 2 then true
+  else if dif = 4 && random > List.nth t2 3 then true
+  else if dif = 5 && random > List.nth t2 4 then true
   else false
 
-let choose_hand3 hand all_hands prev_hands prev_hand first_hand =
+let rec get_num l u =
   Random.self_init ();
-  let lie = Random.int 6 in
+  let num = Random.int u in
+  if num >= l then num else get_num l u
+
+let lie hand diff =
+  Random.self_init ();
+  let lie = Random.int 11 in
+  let c1 = (get_num 2 15, Hearts) in
+  let c2 = (get_num 2 15, Hearts) in
+  let c3 = (get_num 2 15, Hearts) in
+  if diff = 1 then hand else
+    let new_hand =
+    if lie > 8 then (
+      match hand with
+        | h1::h2::h3::t -> (c1::c2::c3::t)
+        | h1::h2::t -> (c1::c2::t)
+        | h::t -> (c1::t)
+        | _ -> hand)
+    else if lie > 6 then (
+      match hand with
+        | h1::h2::t -> (c1::c2::t)
+        | h::t -> (c1::t)
+        | _ -> hand)
+    else if lie > 4 then (
+      match hand with
+        | h::t -> (c1::t)
+        | _ -> hand)
+    else hand
+    in new_hand
+
+
+let choose_hand3 hand all_hands prev_hands prev_hand first_hand diff =
   Random.self_init ();
   let automatic_bs = Random.int 11 in
-  let new_hand = if lie > 3 then (
-    match hand with
-      | h::t -> ((take 1 [])@t)
-      | _ -> hand)
-  else if lie > 4 then (
-    match hand with
-      | h1::h2::t -> ((take 2 [])@t)
-      | _ -> hand)
-  else hand in
+  let new_hand = lie hand diff in
   let next_hand = if List.length prev_hands = 0 then choose_hand2 new_hand prev_hands (HighCard 2)
   else choose_hand2 new_hand prev_hands prev_hand in
   let is_bs = if first_hand then false else
   (match prev_hand with
-  | FourOfAKind a -> if a = 14 then true else bs all_hands prev_hand
-  | _ -> bs all_hands prev_hand) in
+  | FourOfAKind a -> if a = 14 then true else bs all_hands prev_hand diff
+  | _ -> bs all_hands prev_hand diff) in
   let len = List.length (convert_phand_to_rank next_hand) in
   let cards_present = count_one_hand (convert_phand_to_rank next_hand) (fst (List.split hand)) (0, convert_phand_to_rank next_hand) in
   let dif = len - fst cards_present in
@@ -398,7 +323,56 @@ let choose_hand3 hand all_hands prev_hands prev_hand first_hand =
   else if dif >= 4 && automatic_bs > 3 then BS prev_hand
   else Raise next_hand
 
-  let ai_turn id h ph cards hands_called =
-    match ph with
-    | Some h2 -> choose_hand3 h cards hands_called h2 false
-    | None -> choose_hand3 h cards hands_called (HighCard 1) true
+let new_bs myhand cards prev_hand diff =
+  Random.self_init ();
+  let random = Random.int 100 in
+  if hand_exists myhand prev_hand then false
+  else
+    match prev_hand with
+    |FourOfAKind 14 -> true
+    |_ ->
+      let b = hand_exists cards prev_hand in
+      match (diff/10) with
+      |0 -> if random > 75 then not b else b
+      |1 -> if random > 50 then not b else b
+      |_ -> if random > 25 then not b else b
+
+
+let rec nh_helper ph cards hl p =
+Random.self_init ();
+let random = Random.int 100 in
+match hl with
+|[] -> BS ph
+|hd::tl -> match (p/10) with
+  |0-> if random > 50 then
+          Raise hd
+        else (
+          if hand_exists cards hd then Raise hd
+          else nh_helper ph cards tl p)
+  |1-> if random > 75 then
+          Raise hd
+        else (
+          if hand_exists cards hd then Raise hd
+          else nh_helper ph cards tl p)
+  |_-> if random > 95 then
+          Raise hd
+        else (
+          if hand_exists cards hd then Raise hd
+          else nh_helper ph cards tl p)
+
+let trusting_ai id h ph cards hands_called diff =
+  match ph with
+  | Some h2 -> choose_hand3 h cards hands_called h2 false diff
+  | None -> choose_hand3 h cards hands_called (HighCard 1) true diff
+
+let cheating_ai myhand id ph cards =
+  match ph with
+  |Some ha ->
+    if (new_bs myhand cards ha id) then BS ha
+    else nh_helper ha cards (get_higher_hands ha) id
+  |None -> nh_helper (HighCard 1) cards (get_higher_hands (HighCard 1)) id
+
+let ai_turn id h ph cards ph_lst diff =
+  if (id mod 10 = 3) then cheating_ai h id ph cards
+  else trusting_ai id h ph cards ph_lst diff
+end

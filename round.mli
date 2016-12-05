@@ -9,7 +9,7 @@ module type Round = sig
 
   (* [init_state n] is the state of the first round of Liars Poker with [n]
    * players *)
-  val init_state : int -> int -> state
+  val init_state : pid -> int -> state
 
   (* [update_state l s] is the state the next round after player [l] loses
    * round [s] *)

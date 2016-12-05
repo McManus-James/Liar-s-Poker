@@ -1,4 +1,4 @@
-module MyRound = Pokergame.GameRound
+module MyRound = Pokergame.GameRound (Data.CardGame)
 open MyRound
 
 let rec play info =
