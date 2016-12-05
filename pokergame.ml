@@ -819,12 +819,13 @@ let get_potential_cards pokerhands =
  *[player_hand] is current player's hand
  *[prev_hands] is all previously called pokerhands
  *[prev_hand] is most recently called pokerhand*)
-let choose_hand2 player_hand prev_hands prev_hand =
+let choose_hand2 player_hand prev_hands prev_hand trust =
   let higher_hands = get_higher_hands prev_hand in
   let player_hand_ranks = fst (List.split player_hand) in
   let prev_hand_ranks = get_potential_cards prev_hands in
-  choose_hand1 ((-1), HighCard 2) (player_hand_ranks@prev_hand_ranks)
-    higher_hands
+  if trust then choose_hand1 ((-1), HighCard 2)
+    (player_hand_ranks@prev_hand_ranks) higher_hands
+  else choose_hand1 ((-1), HighCard 2) (player_hand_ranks) higher_hands
 
 (*[get_num] returns number of cards that are in both [prev_hand] and [hands]*)
 let rec get_num hands prev_hand accum = match prev_hand with
@@ -907,7 +908,7 @@ let lie hand diff num_cards =
   let c3 = (get_rand_num 2 15, Hearts) in
   if diff = 1 then hand else
     let new_hand =
-    if num_cards < 10 && lie > 5 then (
+    if num_cards < 10 && lie > 7 then (
       match hand with
         | h::t -> (c1::t)
         | _ -> hand)
@@ -938,14 +939,14 @@ let lie hand diff num_cards =
  *   has few cards in common with potential cards in play
  *4. (Raise pokerhand) may be returned such that hand is based on false
  *   based on whether previous players lied, or current player lied*)
-let choose_hand3 hand all_hands prev_hands prev_hand first_hand diff =
+let choose_hand3 hand all_hands prev_hands prev_hand first_hand diff trust =
   Random.self_init ();
   let automatic_bs = Random.int 11 in
   let num_cards = List.length all_hands in
   let new_hand = lie hand diff num_cards in
   let next_hand = if List.length prev_hands = 0 then
-    choose_hand2 new_hand prev_hands (HighCard 2)
-  else choose_hand2 new_hand prev_hands prev_hand in
+    choose_hand2 new_hand prev_hands (HighCard 2) trust
+  else choose_hand2 new_hand prev_hands prev_hand trust in
   let is_bs = if first_hand then false else
   (match prev_hand with
   | FourOfAKind a -> if a = 14 then true else bs all_hands prev_hand diff
@@ -1018,10 +1019,10 @@ match hl with
 
 (*[trusting ai] returns move (either BS or Raise)
  *[h] is current player's hand*)
-let trusting_ai h ph cards hands_called diff =
+let trusting_ai h ph cards hands_called diff trust =
   match ph with
-  | Some h2 -> choose_hand3 h cards hands_called h2 false diff
-  | None -> choose_hand3 h cards hands_called (HighCard 1) true diff
+  | Some h2 -> choose_hand3 h cards hands_called h2 false diff trust
+  | None -> choose_hand3 h cards hands_called (HighCard 1) true diff trust
 
 (*[cheating ai]
   cheating ai is an ai that proccesses its move with knowledge of all the cards
@@ -1044,7 +1045,8 @@ let cheating_ai myhand id ph cards =
  *[diff] is difficulty of the game*)
 let ai_turn id h ph cards ph_lst diff =
   if (id mod 10 = 3) then cheating_ai h id ph cards
-  else trusting_ai h ph cards ph_lst diff
+  else if (id mod 10 = 2) then trusting_ai h ph cards ph_lst diff false
+  else trusting_ai h ph cards ph_lst diff true
 
 
 (********************** END AI **************************)
