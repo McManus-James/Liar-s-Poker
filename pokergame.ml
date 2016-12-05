@@ -951,10 +951,20 @@ let choose_hand3 hand all_hands prev_hands prev_hand first_hand diff =
   if is_bs then BS prev_hand
   else if dif >= 2 && automatic_bs > 7 then BS prev_hand
   else if dif >= 3 && automatic_bs > 4 then BS prev_hand
-  else if dif >= 4 && automatic_bs > 3 then BS prev_hand
+  else if dif >= 4 && automatic_bs > 3 then BSkprev_hand
   else Raise next_hand
 
-let new_bs myhand cards prev_hand diff =
+(*[cheater_bs] returns true if the AI will call BS or false if it will not
+ *[myhand] is list of the ais cards
+ *[cards] is the list of cards in the game during the round
+ *[prev_hand] is previous pokerhand
+ *[diff] is difficulty of game (between 0 and 30 excl)
+ *Calling BS depends on whethether or not the ais hand exists in all the cards
+ *held by any player in the game and a probabilit based of the AIs difficulty
+ *that determines whether or not the AI will know. Furthermore the AI will not
+ *call bs on any hand that exists in its own hand despite probabilities
+*)
+let cheater_bs myhand cards prev_hand diff =
   Random.self_init ();
   let random = Random.int 100 in
   if hand_exists myhand prev_hand then false
@@ -968,8 +978,17 @@ let new_bs myhand cards prev_hand diff =
       |1 -> if random > 50 then not b else b
       |_ -> if random > 25 then not b else b
 
-
-let rec nh_helper ph cards hl p =
+(*[nh_helper] returns move of either (BS pokerhand) or (Raise pokerhand)
+ *[prev_h] is previous pokerhand
+ *[cards] is the list of cards in the game during the round
+ *[hl] is the list of possible hands that can be raised
+ *[diff] the AI id that determines the difficulty(between 0 and 30 excl)
+ *Calling a Raise depends on the whether or not the next hand possible to be
+ *called exits in all the cards in the game and a probability based off the AIs
+ *ID(representing difficulty). If no possible hands are raised then the AI will
+ *call bs
+*)
+let rec nh_helper prev_h cards hl diff =
 Random.self_init ();
 let random = Random.int 100 in
 match hl with
@@ -997,10 +1016,14 @@ let trusting_ai id h ph cards hands_called diff =
   | Some h2 -> choose_hand3 h cards hands_called h2 false diff
   | None -> choose_hand3 h cards hands_called (HighCard 1) true diff
 
+(*[cheating ai]
+  cheating ai is an ai that proccesses its move with knowledge of all the cards
+  currently in play (even those that are not its own)
+*)
 let cheating_ai myhand id ph cards =
   match ph with
   |Some ha ->
-    if (new_bs myhand cards ha id) then BS ha
+    if (cheater_bs myhand cards ha id) then BS ha
     else nh_helper ha cards (get_higher_hands ha) id
   |None -> nh_helper (HighCard 1) cards (get_higher_hands (HighCard 1)) id
 
