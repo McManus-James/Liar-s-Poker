@@ -3,13 +3,15 @@ open Game
 open Pokergame
 open Data
 open CardGame
+open GameDeck
+open GameRound
 
 
 let card_tests = [
   "format_face_card" >:: (fun _ -> assert_equal "Ace of Hearts"
     (string_of_card (14, Hearts)));
-  "format_non_face_card" >:: (fun _ -> assert_equal "4 of Spades"
-    (string_of_card (4, Spades)));
+  "format_non_face_card" >:: (fun _ -> assert_equal "2 of Spades"
+    (string_of_card (2, Spades)));
 ]
 
 
@@ -58,8 +60,41 @@ let deck_tests = [
    (4, Diamonds); (9, Spades)] (deal 4 shuffled_deck; !shuffled_deck));
 ]
 
+
+let players_1 = [(1, 4); (2, 3); (3, 1); (4, 4)]
+let players_2 = [(1, 1); (3, 1); (4, 3)]
+let players_3 = [(1, 1); (4, 1)]
+let players_4 = [(1, 3); (2, 4); (4, 1)]
+
+let round_tests = [
+  "player_1_loses" >:: (fun _ -> assert_equal
+  [(1, 3); (2, 3); (3, 1); (4, 4)] (update_players 1 players_1 []));
+  "player_2_loses" >:: (fun _ -> assert_equal
+  [(1, 4); (2, 2); (3, 1); (4, 4)] (update_players 2 players_1 []));
+  "player_3_is_out" >:: (fun _ -> assert_equal
+  [(1, 4); (2, 3); (4, 4)] (update_players 3 players_1 []));
+  "player_4_loses" >:: (fun _ -> assert_equal
+  [(1, 4); (2, 3); (3, 1); (4, 3)] (update_players 4 players_1 []));
+  "player_1_is_out_config_2" >:: (fun _ -> assert_equal
+  [(3, 1); (4, 3)] (update_players 1 players_2 []));
+  "player_3_is_out_config_2" >:: (fun _ -> assert_equal
+  [(1, 1); (4, 3)] (update_players 3 players_2 []));
+  "player_4_loses_config_2" >:: (fun _ -> assert_equal
+  [(1, 1); (3, 1); (4, 2)] (update_players 4 players_2 []));
+  "player_1_is_out_config_3" >:: (fun _ -> assert_equal
+  [(4, 1)] (update_players 1 players_3 []));
+  "player_4_is_out_config_3" >:: (fun _ -> assert_equal
+  [(1, 1)] (update_players 4 players_3 []));
+  "player_1_out_next_player" >:: (fun _ -> assert_equal 4
+  (next_player 1 [(1, 1); (4, 1)]));
+  "player_3_out_next_player" >:: (fun _ -> assert_equal 4
+  (next_player 3 [(1, 4); (2, 3); (3, 1); (4, 4)]));
+  "player_4_out_next_player_wrap_around" >:: (fun _ -> assert_equal 1
+  (next_player 4 [(1, 3); (2, 4); (4, 1)]));
+]
+
 let suite = "Final Project test suite" >:::
-  card_tests@deck_tests
+  card_tests@deck_tests@round_tests
 
 (* The following line must be the one and only place
  * in your entire source code that calls [OUnit2.run_test_tt_main]. *)
