@@ -809,19 +809,33 @@ let choose_hand2 player_hand prev_hands prev_hand =
   choose_hand1 ((-1), HighCard 2) (player_hand_ranks@prev_hand_ranks)
     higher_hands
 
-(*[get_num]*)
+(*[get_num] returns number of cards that are in both [prev_hand] and [hands]*)
 let rec get_num hands prev_hand accum = match prev_hand with
   | [] -> accum
   | h::t -> if List.mem h hands then get_num hands t (accum + 1)
     else get_num hands t accum
 
+(*[bs] returns true if the AI will call BS or false if it will not
+ *[hands] is list of all cards
+ *[prev_hand] is previous pokerhand
+ *[diff] is difficulty of game (between 1 and 3 incl)
+ *Calling BS depends on three factors: difficulty of game, how unlikely the
+ *previously called hand was, and how many cards from the previous hand were not
+ *in cards collectively, according to the following rules
+ *1. If the hands does not apppear in the cards, the larger the difference, the
+ *likely BS is to be called.
+ *2.If the hand does appear, the higher ranking it is, the more likely BS is to
+ *be called
+ *3. A higher difficulty increases the chances of BS in rule 1. and decreases
+ *chance of BS in rule 2
+*)
 let bs hands prev_hand diff =
   let t1 = if diff = 1 then [94;85;75;65;55;10;5]
     else if diff = 2 then [96;93;88;80;75;50;50]
     else [98;95;92;900;88;88;88] in
   let t2 = if diff = 1 then [93;86;55;40;40]
-    else if diff = 2 then [75;60;45;30;20]
-    else [60;55;45;5;0] in
+    else if diff = 2 then [70;55;40;30;20]
+    else [50;50;45;5;0] in
   Random.self_init ();
   let random = Random.int 100 in
   let cards = fst (List.split hands) in
@@ -846,20 +860,37 @@ let bs hands prev_hand diff =
   else if dif = 5 && random > List.nth t2 4 then true
   else false
 
-let rec get_num l u =
+(*[get_rand_num] returns random number between lower bound [l] (incl) and
+ *upper bout [u] (excl)*)
+let rec get_rand_num l u =
   Random.self_init;
   let num = Random.int u in
-  if num >= l then num else get_num l u
+  if num >= l then num else get_rand_num l u
 
-let lie hand diff =
+(*[lie] returns new hand that may potentially contain new cards, as a way to
+ *get the AI to lie about contents of hand.
+ *[hand] is real hand of player
+ *[diff] is difficulty of game
+ *[num_cards] is number of cards in play
+ *Lie returns incorrect hand based
+ *on three factors:
+ *1. Random number generated determines number of cards in hand to be replaced
+ *2. Number of cards in play total--fewer cards in play means fewer cards are
+ *   replaced
+ *3. if difficulty of game is easiest, then AI never lies*)
+let lie hand diff num_cards =
   Random.self_init ();
   let lie = Random.int 11 in
-  let c1 = (get_num 2 15, Hearts) in
-  let c2 = (get_num 2 15, Hearts) in
-  let c3 = (get_num 2 15, Hearts) in
+  let c1 = (get_rand_num 2 15, Hearts) in
+  let c2 = (get_rand_num 2 15, Hearts) in
+  let c3 = (get_rand_num 2 15, Hearts) in
   if diff = 1 then hand else
     let new_hand =
-    if lie > 8 then (
+    if num_cards < 10 && lie > 5 then (
+      match hand with
+        | h::t -> (c1::t)
+        | _ -> hand)
+    else if lie > 8 then (
       match hand with
         | h1::h2::h3::t -> (c1::c2::c3::t)
         | h1::h2::t -> (c1::c2::t)
@@ -877,11 +908,20 @@ let lie hand diff =
     else hand
     in new_hand
 
-
+(*[choose_hand3] returns move of either (BS pokerhand) or (Raise pokerhand).
+ *pokerhand when calling BS is previous hand, when calling Raise is next hand
+ *outcome determined on following factors:
+ *1. bs is called if [bs] returns true
+ *2. (Raise pokerhand) always returned on first round
+ *3. bs may automatically be called if [choose_hand2] returns pokerhand that
+ *   has few cards in common with potential cards in play
+ *4. (Raise pokerhand) may be returned such that hand is based on false
+ *   based on whether previous players lied, or current player lied*)
 let choose_hand3 hand all_hands prev_hands prev_hand first_hand diff =
   Random.self_init ();
   let automatic_bs = Random.int 11 in
-  let new_hand = lie hand diff in
+  let num_cards = List.length all_hands in
+  let new_hand = lie hand diff num_cards in
   let next_hand = if List.length prev_hands = 0 then choose_hand2 new_hand prev_hands (HighCard 2)
   else choose_hand2 new_hand prev_hands prev_hand in
   let is_bs = if first_hand then false else
@@ -932,6 +972,7 @@ match hl with
           if hand_exists cards hd then Raise hd
           else nh_helper ph cards tl p)
 
+(*[trusting ai ]*)
 let trusting_ai id h ph cards hands_called diff =
   match ph with
   | Some h2 -> choose_hand3 h cards hands_called h2 false diff
@@ -944,11 +985,17 @@ let cheating_ai id ph cards =
     else nh_helper ha cards (get_higher_hands ha) id
   |None -> nh_helper (HighCard 1) cards (get_higher_hands (HighCard 1)) id
 
+(*[ai_turn] returns move of either BS or Raise. Depending on current player,
+ *a different stragety will be used to determing next hand
+ *[id] is current player's id
+ *[h] is current hand
+ *[ph] is previously called pokerhand
+ *[cards] is all cards in play
+ *[ph_lst] is list of previously called pokerhands
+ *[diff] is difficulty of the game*)
 let ai_turn id h ph cards ph_lst diff =
   if (id mod 10 = 3) then cheating_ai id ph cards
   else trusting_ai id h ph cards ph_lst diff
-
-
 
 
 (********************** END AI **************************)
