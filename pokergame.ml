@@ -526,8 +526,13 @@ let rec choose_hand1 cur_hand hand_ranks p_hands =
   match p_hands with
     | [] -> snd cur_hand
     | h::t -> let x = (compare_hand2 cur_hand hand_ranks h) in
+<<<<<<< HEAD
       if snd x = (HighCard 2) then
         choose_hand1 (compare_hand cur_hand hand_ranks h) hand_ranks t
+=======
+      if snd x = (HighCard 2)
+      then choose_hand1 (compare_hand cur_hand hand_ranks h) hand_ranks t
+>>>>>>> 800c5c242589fbc6b9118b033e8bd71c8d311b69
       else choose_hand1 x hand_ranks t
 
 
@@ -893,6 +898,8 @@ let get_potential_cards pokerhands =
 
 (*[choose_hand2] is best pokerhand based on given inputs. That is, it will be
  *the higher pokerhand that has most cards in common with cards in play
+ *[trust] is boolean. If false, hand chosen will only depend on player's
+ *current hand. If true, hand chosen will depend on all potential cards in play
  *[player_hand] is current player's hand
  *[prev_hands] is all previously called pokerhands
  *[prev_hand] is most recently called pokerhand*)
@@ -1011,8 +1018,15 @@ let lie hand diff num_cards =
     else hand
     in new_hand
 
-
-(**[choose_hand3] returns move of either (BS pokerhand) or (Raise pokerhand).
+<<<<<<< HEAD
+(*[choose_hand3] returns move of either (BS pokerhand) or (Raise pokerhand).
+ *[hand] is current hand
+ *[all_hands] is list of all cards in play
+ *[prev_hands] is list of previosly called pokerhands
+ *[prev_hand] is most recently called pokerhand
+ *[first_hand] is boolean as to whether it is first hand called
+ *[diff] is difficulty of game (int between 1 and 3 incl)
+ *[trust] is boolean for whether player should trust cards called previously
  *pokerhand when calling BS is previous hand, when calling Raise is next hand
  *outcome determined on following factors:
  *1. bs is called if [bs] returns true
