@@ -8,8 +8,7 @@ let rec play info =
   let loser = play_round info in
   let new_info = update_state (loser) info in
   match winner new_info with
-    | Some p -> print_endline "***************************************** WINNER ********************************";
-                p
+    | Some p -> p
     | None -> play new_info
 
 
