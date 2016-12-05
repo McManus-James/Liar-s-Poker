@@ -148,7 +148,7 @@ module CardGame : Cards = struct
   (*[get_rand_num] returns random number between lower bound [l] (incl) and
    *upper bout [u] (excl)*)
   let rec get_rand_num l u =
-    Random.self_init;
+    Random.self_init ();
     let num = Random.int u in
     if num >= l then num else get_rand_num l u
 
