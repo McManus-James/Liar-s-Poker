@@ -25,4 +25,5 @@ Valid ranks include the numbers 2-14(s), jack(s), queen(s), king(s) and ace(s)
 Valid ranks for a STRAIGHT do not include the numbers 2-5, because
 the lowest possible straight is: 2,3,4,5,6
 
-As before, 
+As before, inputted pokerhands are case insensitive, and the number of spaces does not matter. In parentheses are shortcuts for each hand.
+In addition, input will accept hands such as 'raise pair 2s' or 'raise pair 2'
