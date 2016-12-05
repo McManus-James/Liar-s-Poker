@@ -997,7 +997,7 @@ let choose_hand3 hand all_hands prev_hands prev_hand first_hand diff trust =
     (fst (List.split hand)) (0, convert_phand_to_rank next_hand) in
   let dif = len - fst cards_present in
   if is_bs then BS prev_hand
-  else if dif >= 2 && automatic_bs > 7 then BS prev_hand
+  else if dif >= 2 && automatic_bs > 5 then BS prev_hand
   else if dif >= 3 && automatic_bs > 4 then BS prev_hand
   else if dif >= 4 && automatic_bs > 2 then BS prev_hand
   else Raise next_hand
