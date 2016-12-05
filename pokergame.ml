@@ -171,7 +171,13 @@ module GameRound = struct
       | [] -> true
       | h::t -> (exists (fun x -> x = h) rank_lst) && check_straight t rank_lst
 
-  let hand_exists hands handrank =
+
+  (* [hand_exists hands handrank] returns true if [handrank] exists within the
+   * everyone's hands collectively, [hands]. If [handrank] is not found within
+   * [hands], then [hand_exists] returns false
+   * [hands] is a list of all the cards in play
+   * [handrank] is a valid pokerhand *)
+  let hand_exists (hands : card list) (handrank : pokerhand) =
     let ranks = (List.sort compare (fst (List.split hands))) in
     let hand_rank_lst = convert_phand_to_rank handrank in
     match handrank with
@@ -347,15 +353,30 @@ module GameRound = struct
                   ^" 2-5, because\nthe lowest possible straight is:"
                   ^" 2,3,4,5,6")
 
+  (* [print_numcards (p,n)] prints the number of cards [n] that player [p] has
+   * remaining in the game.
+   * [p] is a valid pid
+   * [n] is that player's number of cards in the game, a positive integer
+   * between 1 and 4 *)
   let print_numcards (p,n) =
     print_endline ("Player "^string_of_int (p mod 10)^" has "^(string_of_int n)
                   ^" cards.")
 
+
+  (* [print_number_cards p] prints each player's number of cards remaining in
+   * game.
+   * [p] is an association list mapping pids to the number of cards they have
+   * in the game *)
   let rec print_number_cards p = match p with
     | [] -> ()
     | (pid, n)::t -> print_numcards (pid, n);
                      print_number_cards t
 
+
+  (* [print_total_num_cards p] prints the total number of cards in play at the
+   * moment the function is called.
+   * [p] is association list mapping pids to the number of cards they have in
+   * the game *)
   let print_total_num_cards (p : (pid * int) list) =
     let num_cards = snd (split p) in
     let total_num_cards = fold_left (+) 0 num_cards in
@@ -943,8 +964,8 @@ let choose_hand3 hand all_hands prev_hands prev_hand first_hand diff =
   else choose_hand2 new_hand prev_hands prev_hand in
   let is_bs = if first_hand then false else
   (match prev_hand with
-  | FourOfAKind a -> if a = 14 then true else bs all_hands prev_hand diff
-  | _ -> bs all_hands prev_hand diff) in
+    | FourOfAKind a -> if a = 14 then true else bs all_hands prev_hand diff
+    | _ -> bs all_hands prev_hand diff) in
   let len = List.length (convert_phand_to_rank next_hand) in
   let cards_present = count_one_hand (convert_phand_to_rank next_hand) (fst (List.split hand)) (0, convert_phand_to_rank next_hand) in
   let dif = len - fst cards_present in
