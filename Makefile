@@ -6,4 +6,4 @@ play:
 
 clean:
 	ocamlbuild -clean
-	rm -f round.mli.orig deck.mli.orig test_deck.mli.orig test_round.mli.orig
+	rm -f round.mli.orig deck.mli.orig pokergame.mli.orig
