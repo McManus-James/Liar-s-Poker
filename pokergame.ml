@@ -943,14 +943,16 @@ let choose_hand3 hand all_hands prev_hands prev_hand first_hand diff =
   let automatic_bs = Random.int 11 in
   let num_cards = List.length all_hands in
   let new_hand = lie hand diff num_cards in
-  let next_hand = if List.length prev_hands = 0 then choose_hand2 new_hand prev_hands (HighCard 2)
+  let next_hand = if List.length prev_hands = 0 then
+    choose_hand2 new_hand prev_hands (HighCard 2)
   else choose_hand2 new_hand prev_hands prev_hand in
   let is_bs = if first_hand then false else
   (match prev_hand with
   | FourOfAKind a -> if a = 14 then true else bs all_hands prev_hand diff
   | _ -> bs all_hands prev_hand diff) in
   let len = List.length (convert_phand_to_rank next_hand) in
-  let cards_present = count_one_hand (convert_phand_to_rank next_hand) (fst (List.split hand)) (0, convert_phand_to_rank next_hand) in
+  let cards_present = count_one_hand (convert_phand_to_rank next_hand)
+    (fst (List.split hand)) (0, convert_phand_to_rank next_hand) in
   let dif = len - fst cards_present in
   if is_bs then BS prev_hand
   else if dif >= 2 && automatic_bs > 7 then BS prev_hand
